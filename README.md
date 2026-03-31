@@ -91,6 +91,7 @@ python3 tools/orchestra_skill_validator.py --all
 - **Skill Loader** — discover, search, and install skills from multiple sources (local, department, user-level, GitHub)
 - **Team Coordinator** — agent team management with shared task lists, dependency tracking, file-locked task claiming, and message routing
 - **Hooks Engine** — lifecycle event automation (PreToolUse, PostToolUse, Stop, TaskCompleted) with command/prompt/agent execution types and blocking gates
+- **Memory Scoper** — three-tier memory hierarchy (user/project/department) with path-scoped rules, context budgeting, and health checks for bloat/staleness
 
 ## Quick Start
 
