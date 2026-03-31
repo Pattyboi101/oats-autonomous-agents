@@ -37,8 +37,20 @@ Built in production on [IndieStack](https://indiestack.ai). Not theory. Not a de
 6 specialist departments + S&QA gating. Real-time communication via [claude-peers](https://github.com/louislva/claude-peers-mcp). Every task goes through a Strategy & QA agent that can approve, challenge, or veto before any work executes.
 
 ```bash
-# One-shot mode
-python3 orchestra/orchestrator.py --simple "Fix the broken auth endpoint"
+# One-shot dispatch
+python3 orchestrator.py run "Fix the broken auth endpoint"
+
+# Dispatch to a specific agent
+python3 orchestrator.py run --agent backend "Add rate limiting to /api/search"
+
+# Start a team
+python3 orchestrator.py team start feature-x "Build the new dashboard"
+
+# Self-improvement loop
+python3 orchestrator.py improve --target skills
+
+# System health check
+python3 orchestrator.py health
 
 # Persistent mode (living agents in tmux)
 orchestra/launch.sh
