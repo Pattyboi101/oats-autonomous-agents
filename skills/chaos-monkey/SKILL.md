@@ -110,6 +110,28 @@ curl "https://your-project-staging.fly.dev/api/tools/search?q=FLY_API_TOKEN"
 curl "https://your-project-staging.fly.dev/?debug=true"
 ```
 
+## Proactive Triggers
+
+Surface these WITHOUT being asked:
+- **Before any deploy** — Run a quick auth bypass check (Vector 4) and SQL injection (Vector 1) before pushing to prod.
+- **After new user-input endpoint added** — Test the new endpoint with all injection payloads.
+- **After dependency upgrade** — Check if new dependencies introduced XSS or CSRF vulnerabilities.
+- **Weekly cadence** — Full scan every week if staging is available.
+
+## Modes
+
+### Mode: Full Scan
+Run all 6 vectors against staging. Output complete report with severity classification.
+
+### Mode: Quick Auth Check
+Vector 4 only — auth bypass results in 5 minutes. Use before deploy.
+
+### Mode: Pre-Deploy Security Gate
+All vectors, but only report P0/P1 findings. Exit code 2 (deny) if any P0 found — integrates with hooks engine to block deploys.
+
+### Mode: Endpoint Audit
+Target a specific endpoint with all vectors. Use when a new route is added.
+
 ## How This Skill Works
 
 ### Step 1: Confirm staging target

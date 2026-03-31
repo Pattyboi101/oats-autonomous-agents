@@ -44,6 +44,20 @@ The goal: catch UX failures before real users do, by thinking like them.
 - Success signal: top result has install_command, tagline, and relevant category
 - Failure signal: 404, empty fields, or response that would confuse the calling agent
 
+## Modes
+
+### Mode: Full Audit
+Run all 4 personas through the complete site. Output per-persona navigation logs with severity classifications.
+
+### Mode: Persona Focus
+Run a single persona through a specific flow. Use when testing a specific feature or user type.
+
+### Mode: Pre-Deploy UX Check
+All personas, summary table only. P1 blockers highlighted. Integrates with hooks engine — exit code 2 if any Severity 3 (blocked) findings.
+
+### Mode: Claim Flow Check
+Persona C (Tool Maker) only — verify the claim flow works end-to-end after outreach emails.
+
 ## How This Skill Works
 
 ### Step 1: Define the persona and mission

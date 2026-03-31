@@ -43,6 +43,20 @@ Are identical or near-identical prompts being sent repeatedly?
 - Same component library read by Frontend on every task
 - Same migration data fetched repeatedly by Content
 
+## Modes
+
+### Mode: Full Audit
+Complete cost analysis across all departments with model-task mismatch detection and caching recommendations.
+
+### Mode: Quick Summary
+Per-department cost summary from the last session. Use when Patrick asks "how much did today cost?"
+
+### Mode: Task Estimate
+Cost estimate for a proposed task based on similar past tasks. Use before dispatching expensive work.
+
+### Mode: Waste Finder
+Top 3 waste patterns with specific file/prompt evidence. Use when costs are unexpectedly high.
+
 ## How This Skill Works
 
 ### Step 1: Read cost history
