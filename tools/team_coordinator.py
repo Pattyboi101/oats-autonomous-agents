@@ -19,6 +19,7 @@ Usage:
     python3 tools/team_coordinator.py shutdown "my-team"
 """
 
+import fcntl
 import json
 import sys
 from datetime import datetime
@@ -82,53 +83,129 @@ class Team:
     def save_tasks(self, tasks: list):
         self.tasks_path.write_text(json.dumps(tasks, indent=2))
 
+    def _lock_tasks(self):
+        """Acquire file lock on tasks for safe concurrent access."""
+        lock_path = self.dir / "tasks.lock"
+        lock_path.touch(exist_ok=True)
+        self._lock_fd = open(lock_path, "w")
+        fcntl.flock(self._lock_fd, fcntl.LOCK_EX)
+
+    def _unlock_tasks(self):
+        """Release file lock on tasks."""
+        if hasattr(self, "_lock_fd") and self._lock_fd:
+            fcntl.flock(self._lock_fd, fcntl.LOCK_UN)
+            self._lock_fd.close()
+
     def create_task(self, title: str, description: str = "",
-                    owner: str = None, priority: str = "medium") -> str:
-        tasks = self.get_tasks()
-        task_id = f"t-{len(tasks) + 1:03d}"
-        task = {
-            "id": task_id,
-            "title": title,
-            "description": description,
-            "status": "pending",
-            "owner": owner,
-            "priority": priority,
-            "created_at": datetime.now().isoformat(),
-            "completed_at": None,
-        }
-        tasks.append(task)
-        self.save_tasks(tasks)
-        print(f"Task {task_id}: {title}" + (f" (assigned to {owner})" if owner else ""))
-        return task_id
+                    owner: str = None, priority: str = "medium",
+                    blocked_by: list = None) -> str:
+        self._lock_tasks()
+        try:
+            tasks = self.get_tasks()
+            task_id = f"t-{len(tasks) + 1:03d}"
+            task = {
+                "id": task_id,
+                "title": title,
+                "description": description,
+                "status": "blocked" if blocked_by else "pending",
+                "owner": owner,
+                "priority": priority,
+                "blocked_by": blocked_by or [],
+                "blocks": [],
+                "created_at": datetime.now().isoformat(),
+                "completed_at": None,
+            }
+            # Update reverse references
+            if blocked_by:
+                for t in tasks:
+                    if t["id"] in blocked_by:
+                        if "blocks" not in t:
+                            t["blocks"] = []
+                        t["blocks"].append(task_id)
+            tasks.append(task)
+            self.save_tasks(tasks)
+            status_msg = f" [blocked by {', '.join(blocked_by)}]" if blocked_by else ""
+            owner_msg = f" (assigned to {owner})" if owner else ""
+            print(f"Task {task_id}: {title}{owner_msg}{status_msg}")
+            return task_id
+        finally:
+            self._unlock_tasks()
 
     def assign_task(self, task_id: str, owner: str):
-        tasks = self.get_tasks()
-        for task in tasks:
-            if task["id"] == task_id:
-                task["owner"] = owner
-                task["status"] = "in_progress"
-                self.save_tasks(tasks)
-                print(f"Assigned {task_id} to {owner}")
-                return
-        print(f"Task {task_id} not found")
+        self._lock_tasks()
+        try:
+            tasks = self.get_tasks()
+            for task in tasks:
+                if task["id"] == task_id:
+                    if task["status"] == "blocked":
+                        print(f"Cannot assign {task_id} — blocked by {task.get('blocked_by', [])}")
+                        return
+                    if task["status"] == "in_progress" and task.get("owner"):
+                        print(f"Cannot assign {task_id} — already claimed by {task['owner']}")
+                        return
+                    task["owner"] = owner
+                    task["status"] = "in_progress"
+                    self.save_tasks(tasks)
+                    print(f"Assigned {task_id} to {owner}")
+                    return
+            print(f"Task {task_id} not found")
+        finally:
+            self._unlock_tasks()
+
+    def claim_next(self, agent_name: str) -> str:
+        """Agent self-claims the next available unblocked task."""
+        self._lock_tasks()
+        try:
+            tasks = self.get_tasks()
+            # Priority order: high > medium > low
+            priority_order = {"high": 0, "medium": 1, "low": 2}
+            pending = [t for t in tasks if t["status"] == "pending" and not t.get("owner")]
+            pending.sort(key=lambda t: priority_order.get(t.get("priority", "medium"), 1))
+
+            if not pending:
+                print(f"No tasks available for {agent_name}")
+                return None
+
+            task = pending[0]
+            task["owner"] = agent_name
+            task["status"] = "in_progress"
+            self.save_tasks(tasks)
+            print(f"{agent_name} claimed {task['id']}: {task['title']}")
+            return task["id"]
+        finally:
+            self._unlock_tasks()
 
     def complete_task(self, task_id: str, result: str = ""):
-        tasks = self.get_tasks()
-        config = self.load_config()
-        for task in tasks:
-            if task["id"] == task_id:
-                task["status"] = "completed"
-                task["completed_at"] = datetime.now().isoformat()
-                task["result"] = result
-                # Update member stats
-                for member in config["members"]:
-                    if member["name"] == task.get("owner"):
-                        member["tasks_completed"] += 1
-                self.save_tasks(tasks)
-                self.save_config(config)
-                print(f"Completed {task_id}")
-                return
-        print(f"Task {task_id} not found")
+        self._lock_tasks()
+        try:
+            tasks = self.get_tasks()
+            config = self.load_config()
+            for task in tasks:
+                if task["id"] == task_id:
+                    task["status"] = "completed"
+                    task["completed_at"] = datetime.now().isoformat()
+                    task["result"] = result
+                    # Update member stats
+                    for member in config["members"]:
+                        if member["name"] == task.get("owner"):
+                            member["tasks_completed"] += 1
+                    # Auto-unblock dependent tasks
+                    unblocked = []
+                    for other in tasks:
+                        if task_id in other.get("blocked_by", []):
+                            other["blocked_by"].remove(task_id)
+                            if not other["blocked_by"] and other["status"] == "blocked":
+                                other["status"] = "pending"
+                                unblocked.append(other["id"])
+                    self.save_tasks(tasks)
+                    self.save_config(config)
+                    print(f"Completed {task_id}")
+                    if unblocked:
+                        print(f"  Unblocked: {', '.join(unblocked)}")
+                    return
+            print(f"Task {task_id} not found")
+        finally:
+            self._unlock_tasks()
 
     def send_message(self, from_agent: str, to_agent: str, message: str):
         messages = json.loads(self.messages_path.read_text()) if self.messages_path.exists() else []
@@ -162,6 +239,7 @@ class Team:
         config = self.load_config()
         tasks = self.get_tasks()
 
+        blocked = sum(1 for t in tasks if t["status"] == "blocked")
         pending = sum(1 for t in tasks if t["status"] == "pending")
         in_progress = sum(1 for t in tasks if t["status"] == "in_progress")
         completed = sum(1 for t in tasks if t["status"] == "completed")
@@ -177,12 +255,16 @@ class Team:
                   f"done:{m['tasks_completed']}")
 
         print(f"\n  Tasks ({len(tasks)}):")
-        print(f"    Pending: {pending} | In Progress: {in_progress} | Completed: {completed}")
+        print(f"    Blocked: {blocked} | Pending: {pending} | In Progress: {in_progress} | Completed: {completed}")
         for t in tasks:
             if t["status"] != "completed":
-                icon = "⏳" if t["status"] == "pending" else "🔄"
+                icons = {"blocked": "🚫", "pending": "⏳", "in_progress": "🔄"}
+                icon = icons.get(t["status"], "?")
                 owner = f" [{t['owner']}]" if t.get("owner") else ""
-                print(f"    {icon} {t['id']}: {t['title']}{owner}")
+                deps = ""
+                if t.get("blocked_by"):
+                    deps = f" (waiting for {', '.join(t['blocked_by'])})"
+                print(f"    {icon} {t['id']}: {t['title']}{owner}{deps}")
         print(f"{'='*50}")
 
     def shutdown(self):
@@ -199,8 +281,9 @@ def main():
         print("Usage:")
         print("  team_coordinator.py create <name> <description>")
         print("  team_coordinator.py add-member <team> <name> <type>")
-        print("  team_coordinator.py task <team> <title> [owner]")
+        print("  team_coordinator.py task <team> <title> [owner] [--blocked-by t-001,t-002]")
         print("  team_coordinator.py assign <team> <task-id> <owner>")
+        print("  team_coordinator.py claim <team> <agent-name>       # self-claim next task")
         print("  team_coordinator.py complete <team> <task-id>")
         print("  team_coordinator.py status <team>")
         print("  team_coordinator.py shutdown <team>")
@@ -216,11 +299,18 @@ def main():
         Team(sys.argv[2]).add_member(sys.argv[3], sys.argv[4])
 
     elif cmd == "task" and len(sys.argv) >= 4:
-        owner = sys.argv[4] if len(sys.argv) > 4 else None
-        Team(sys.argv[2]).create_task(sys.argv[3], owner=owner)
+        owner = sys.argv[4] if len(sys.argv) > 4 and not sys.argv[4].startswith("--") else None
+        blocked_by = None
+        for i, arg in enumerate(sys.argv):
+            if arg == "--blocked-by" and i + 1 < len(sys.argv):
+                blocked_by = [x.strip() for x in sys.argv[i + 1].split(",")]
+        Team(sys.argv[2]).create_task(sys.argv[3], owner=owner, blocked_by=blocked_by)
 
     elif cmd == "assign" and len(sys.argv) >= 5:
         Team(sys.argv[2]).assign_task(sys.argv[3], sys.argv[4])
+
+    elif cmd == "claim" and len(sys.argv) >= 4:
+        Team(sys.argv[2]).claim_next(sys.argv[3])
 
     elif cmd == "complete" and len(sys.argv) >= 4:
         Team(sys.argv[2]).complete_task(sys.argv[3])

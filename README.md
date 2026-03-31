@@ -88,6 +88,9 @@ python3 tools/orchestra_skill_validator.py --all
 - **Skill Validator** — scores skills against the authoring standard (frontmatter, modes, triggers, artifacts)
 - **Quality Scorer** — multi-dimensional skill quality assessment
 - **Session State** — persistent state that survives restarts
+- **Skill Loader** — discover, search, and install skills from multiple sources (local, department, user-level, GitHub)
+- **Team Coordinator** — agent team management with shared task lists, dependency tracking, file-locked task claiming, and message routing
+- **Hooks Engine** — lifecycle event automation (PreToolUse, PostToolUse, Stop, TaskCompleted) with command/prompt/agent execution types and blocking gates
 
 ## Quick Start
 
