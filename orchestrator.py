@@ -48,6 +48,9 @@ from tools.hooks import HookEngine, VALID_EVENTS
 from tools.memory_scoper import MemoryScoper
 from tools.team_coordinator import Team, TEAMS_DIR
 from tools.skill_loader import SkillLoader
+from tools.trust import TrustEngine
+from tools.budget import BudgetTracker
+from tools.blackboard import Blackboard, BOARD_DIR
 
 
 class Orchestrator:
@@ -55,6 +58,8 @@ class Orchestrator:
 
     def __init__(self, project_dir: str = "."):
         self.project_dir = Path(project_dir)
+        self.trust = TrustEngine()
+        self.budget = BudgetTracker()
         self.hooks = HookEngine.from_config(
             str(self.project_dir / ".oats" / "hooks.json"),
             project_dir
@@ -224,6 +229,32 @@ class Orchestrator:
             else:
                 print("Hooks config: valid")
 
+        elif target == "trust":
+            board = self.trust.leaderboard()
+            if not board:
+                print("No agents tracked yet.")
+                return
+            print(f"Trust leaderboard ({len(board)} agents):")
+            for i, rep in enumerate(board, 1):
+                print(f"  {i}. {rep.agent_id:15s} {rep.score:.3f} "
+                      f"streak={rep.streak:+d} ({rep.tasks_completed}W/{rep.tasks_failed}L)")
+            low = [r for r in board if r.score < 0.3]
+            if low:
+                print(f"\n{len(low)} agent(s) with low trust — consider retraining or replacing")
+
+        elif target == "budget":
+            s = self.budget.status()
+            if not s["agents"]:
+                print("No budgets configured.")
+                return
+            session = s["session"]
+            print(f"Session: {session['tokens_used']:,}/{session['token_limit']:,} "
+                  f"({session['pct']:.1f}%) ${session['cost_usd']:.3f}")
+            for aid, b in s["agents"].items():
+                pct = b["tokens_used"] / max(1, b["token_limit"]) * 100
+                status = "BROKEN" if b["circuit_broken"] else "ok"
+                print(f"  {aid:12s} {b['tokens_used']:>8,}/{b['token_limit']:>8,} ({pct:.0f}%) [{status}]")
+
     def health(self):
         """Full system health check."""
         print("OATS Health Check")
@@ -273,6 +304,36 @@ class Orchestrator:
         else:
             print("  Agents:  none")
 
+        # Trust scores
+        if self.trust.agents:
+            top = self.trust.leaderboard()
+            broken = [r for r in top if r.score < 0.2]
+            status = "OK" if not broken else f"{len(broken)} low-trust"
+            print(f"  Trust:   {len(top)} agents tracked [{status}]")
+            for r in top[:3]:
+                print(f"           {r.agent_id}: {r.score:.3f} ({r.tasks_completed}W/{r.tasks_failed}L)")
+        else:
+            print("  Trust:   no agents tracked")
+
+        # Budget
+        budget_status = self.budget.status()
+        session = budget_status["session"]
+        broken = budget_status["circuit_broken"]
+        status = f"BROKEN: {', '.join(broken)}" if broken else "OK"
+        if budget_status["agents"]:
+            print(f"  Budget:  {session['tokens_used']:,} tokens, ${session['cost_usd']:.3f} [{status}]")
+        else:
+            print("  Budget:  no budgets set")
+
+        # Blackboards
+        if BOARD_DIR.exists():
+            boards = [d for d in BOARD_DIR.iterdir() if d.is_dir()]
+            active = sum(1 for b in boards
+                         if json.loads((b / "config.json").read_text()).get("status") == "active")
+            print(f"  Boards:  {len(boards)} total, {active} active")
+        else:
+            print("  Boards:  none")
+
         print("=" * 50)
 
 
@@ -313,7 +374,7 @@ Examples:
     # Improve
     improve_p = sub.add_parser("improve", help="Self-improvement loop")
     improve_p.add_argument("--target", default="skills",
-                           choices=["skills", "memory", "hooks"])
+                           choices=["skills", "memory", "hooks", "trust", "budget"])
 
     # Health
     sub.add_parser("health", help="System health check")
