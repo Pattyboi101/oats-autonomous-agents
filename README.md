@@ -107,6 +107,7 @@ python3 tools/orchestra_skill_validator.py --all
 - **Coordinator** — parallel worker dispatch with synthesis: decompose task, workers analyze independently, lead synthesizes into RECOMMENDATION.md
 - **Trust Engine** — agent reputation scoring with Bayesian updates, streak bonuses, UCB1 exploration, and trust-weighted output aggregation. No other framework has this.
 - **Blackboard Protocol** — agents self-organize around a shared coordination surface instead of rigid orchestration graphs. Research shows 13-57% improvement over hierarchical patterns.
+- **Token Budget** — per-agent cost limits with circuit breakers. At 85% usage: warning. At 100%: agent paused. Session-level caps prevent runaway spend across all agents.
 
 ## Quick Start
 
