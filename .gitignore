@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.orchestra/history/*.json
+.orchestra/logs/
+.orchestra/memory/*.md
+!.orchestra/memory/playbook.md
+!.orchestra/memory/.gitkeep
+.orchestra/session_state.json
+.orchestra/reactor_state.json
+.orchestra/results_tracker.json
+*.db
+.env
