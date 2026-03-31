@@ -1,0 +1,55 @@
+{
+  "mode": "persistent",
+  "broker_port": 7899,
+  "tmux_session": "orchestra",
+  "budget_cap_usd": 5.00,
+  "require_approval_for_deploy": true,
+  "require_approval_for_commit": false,
+  "models": {
+    "master": "opus",
+    "strategy": "opus",
+    "frontend": "sonnet",
+    "backend": "sonnet",
+    "devops": "haiku",
+    "content": "sonnet",
+    "mcp": "sonnet"
+  },
+  "departments": {
+    "frontend": {
+      "name": "Frontend",
+      "emoji": "⚡",
+      "allowed_paths": ["src/", "templates/", "static/"],
+      "description": "UI, templates, CSS, UX, client-side code"
+    },
+    "backend": {
+      "name": "Backend",
+      "emoji": "🔧",
+      "allowed_paths": ["src/", "scripts/", "migrations/"],
+      "description": "Database, auth, API logic, data processing"
+    },
+    "devops": {
+      "name": "DevOps",
+      "emoji": "🚀",
+      "allowed_paths": ["Dockerfile", "docker-compose.yml", "*.toml", ".github/"],
+      "description": "Deployment, health checks, CI/CD, infrastructure"
+    },
+    "content": {
+      "name": "Content/SEO",
+      "emoji": "📝",
+      "allowed_paths": ["src/", "docs/", "README.md"],
+      "description": "Copy, meta tags, documentation, SEO"
+    },
+    "mcp": {
+      "name": "Integration",
+      "emoji": "🔌",
+      "allowed_paths": ["src/", "pyproject.toml", "package.json"],
+      "description": "External APIs, integrations, publishing"
+    },
+    "strategy": {
+      "name": "Strategy & QA",
+      "emoji": "🎯",
+      "allowed_paths": ["*"],
+      "description": "Reviews all plans before execution. Challenges assumptions, audits output, flags overconfidence. Read-only access to everything."
+    }
+  }
+}
