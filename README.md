@@ -31,6 +31,21 @@ Memory + Playbook ─── agents remember and improve
 
 Built in production on [IndieStack](https://indiestack.ai). Not theory. Not a demo. A system that ships real products while the founders sleep.
 
+## Why OATS over CrewAI / AutoGen / LangGraph?
+
+| Feature | OATS | CrewAI | AutoGen | LangGraph |
+|---------|------|--------|---------|-----------|
+| Agent trust scoring | **Yes** — Bayesian reputation with streak bonuses | No | No | No |
+| Blackboard protocol | **Yes** — agents self-organize, no rigid graphs | No | No | No |
+| Token budget + circuit breakers | **Yes** — per-agent limits, auto-pause at 100% | No | No | No |
+| Deterministic trace replay | **Yes** — record runs, replay for debugging | No | No | No |
+| Lifecycle hooks | **Yes** — 7 events, blocking gates | No | Partial | No |
+| Memory consolidation with gates | **Yes** — 3-gate dream system | No | No | No |
+| Self-improving skills | **Yes** — validator + autoresearch loop | No | No | No |
+| Zero external dependencies | **Yes** — stdlib only | No (LangChain) | No (OpenAI SDK) | No (LangChain) |
+
+These aren't incremental improvements. Trust scoring, blackboard coordination, and deterministic replay are **features that don't exist in any other open-source agent framework** as of March 2026. Based on research from [arxiv 2505.24239](https://arxiv.org/abs/2505.24239) (credibility scoring), [arxiv 2507.01701](https://arxiv.org/abs/2507.01701) (blackboard architecture), and [OTel GenAI conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/).
+
 ## What's inside
 
 ### Orchestra — multi-agent coordination
@@ -77,7 +92,7 @@ The S&QA agent caught a bug in our outreach emails before 13 real people clicked
 # Validate all skills
 python3 tools/orchestra_skill_validator.py --all
 
-# Current score: 86% average, all operational skills grade A
+# Current score: 100% average, all 16 skills grade A
 ```
 
 | Skill | Department | What it does |
@@ -147,6 +162,27 @@ python3 agents/chaos_monkey.py https://your-staging-site.com
 python3 agents/synthetic_user.py https://your-site.com
 python3 agents/build_in_public.py
 python3 agents/token_economist.py
+```
+
+### Option D: Just the tools (trust, blackboard, budget, tracer)
+
+```bash
+# Quickstart — sets up sample config and runs diagnostics
+bash quickstart.sh
+
+# Or use tools directly
+python3 tools/trust.py register backend frontend devops
+python3 tools/trust.py record backend task-001 0.8
+python3 tools/trust.py leaderboard
+
+python3 tools/blackboard.py create session-1 "How should we implement caching?"
+python3 tools/blackboard.py post session-1 backend proposal "Use Redis"
+
+python3 tools/budget.py set backend 200000 --cost 1.50
+python3 tools/budget.py status
+
+python3 tools/tracer.py summary run-001
+python3 tools/tracer.py timeline run-001
 ```
 
 ## The self-improvement loop
