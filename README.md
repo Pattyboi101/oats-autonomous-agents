@@ -105,6 +105,8 @@ python3 tools/orchestra_skill_validator.py --all
 - **Hooks Engine** — lifecycle event automation (PreToolUse, PostToolUse, Stop, TaskCompleted) with command/prompt/agent execution types and blocking gates
 - **Memory Scoper** — three-tier memory hierarchy (user/project/department) with path-scoped rules, context budgeting, and health checks for bloat/staleness
 - **Coordinator** — parallel worker dispatch with synthesis: decompose task, workers analyze independently, lead synthesizes into RECOMMENDATION.md
+- **Trust Engine** — agent reputation scoring with Bayesian updates, streak bonuses, UCB1 exploration, and trust-weighted output aggregation. No other framework has this.
+- **Blackboard Protocol** — agents self-organize around a shared coordination surface instead of rigid orchestration graphs. Research shows 13-57% improvement over hierarchical patterns.
 
 ## Quick Start
 
