@@ -201,7 +201,39 @@ This is what makes OATS different from a skill list. The agents improve themselv
 6. Repeat until all skills are grade A.
 ```
 
-We went from 51% to 93% average score across 15 skills in one session using this loop. The Karpathy autoresearch pattern, applied to agent behavior instead of model training.
+We went from 51% to 100% average score across 16 skills using this loop. The Karpathy autoresearch pattern, applied to agent behavior instead of model training.
+
+## MOAT — Master OAT Autonomous Thinking
+
+MOAT is the autonomous brain that directs an orchestra of agents. It thinks in chains — each completed task sparks the next idea. Between sessions, a remote trigger fires hourly, reads the last thought, and continues building.
+
+```
+MOAT Brain (cloud, hourly)
+    │ reads thought chain → researches → builds → records next thought
+    │
+    │ if idea needs multiple agents:
+    ▼
+.orchestra/directives/pending/
+    │
+    ▼
+Master Agent (local tmux)
+    ├── Strategy & QA (veto power)
+    ├── Frontend / Backend / DevOps / Content / MCP
+    └── results flow back to MOAT brain
+```
+
+The thought chain runs until ideas genuinely dry up. If the brain is uninspired, it searches the web — the internet is limitless inspiration.
+
+```bash
+# Run the MOAT full cycle
+python3 tools/pipeline.py run full-cycle
+
+# See the thought chain
+python3 tools/think.py chain
+
+# Generate a new thought
+python3 orchestrator.py think "what I built" "what I realized" "where this leads" --confidence 0.8
+```
 
 ## How it was built
 
