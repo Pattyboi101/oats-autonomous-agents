@@ -51,15 +51,22 @@ from tools.skill_loader import SkillLoader
 from tools.trust import TrustEngine
 from tools.budget import BudgetTracker
 from tools.blackboard import Blackboard, BOARD_DIR
+from tools.think import ThoughtEngine
 
 
 class Orchestrator:
-    """Main OATS orchestrator — coordinates agents, memory, hooks, and skills."""
+    """Main OATS orchestrator — coordinates agents, memory, hooks, and skills.
+
+    Two modes:
+    - Directed: you give it a task, it executes
+    - Autonomous: it generates its own next steps from completed work
+    """
 
     def __init__(self, project_dir: str = "."):
         self.project_dir = Path(project_dir)
         self.trust = TrustEngine()
         self.budget = BudgetTracker()
+        self.thoughts = ThoughtEngine()
         self.hooks = HookEngine.from_config(
             str(self.project_dir / ".oats" / "hooks.json"),
             project_dir
@@ -336,6 +343,88 @@ class Orchestrator:
 
         print("=" * 50)
 
+        # Thoughts
+        t_stats = self.thoughts.stats()
+        if t_stats["total_thoughts"]:
+            pending = t_stats["pending"]
+            print(f"  Thoughts: {t_stats['total_thoughts']} total, {pending} pending")
+            next_t = self.thoughts.get_highest_confidence_unacted()
+            if next_t:
+                print(f"  Next:    {next_t.where_this_leads[:50]}... ({next_t.confidence:.0%})")
+        else:
+            print("  Thoughts: none — run 'orchestrator.py think' after completing work")
+
+        print("=" * 50)
+
+    def think(self, what_i_built: str, what_i_realized: str,
+              where_this_leads: str, confidence: float = 0.5,
+              signal_source: str = "completion"):
+        """Generate a forward-looking thought after completing work.
+
+        This is the core of autonomous ideation. Each thought links to
+        the previous one, forming a chain of creative leaps.
+        """
+        # Link to the most recent thought
+        latest = self.thoughts.get_latest()
+        parent_id = latest.id if latest and not latest.child_id else None
+
+        thought = self.thoughts.think_forward(
+            what_i_built=what_i_built,
+            what_i_realized=what_i_realized,
+            where_this_leads=where_this_leads,
+            confidence=confidence,
+            signal_source=signal_source,
+            parent_id=parent_id,
+        )
+
+        print(f"Thought recorded: {thought.id}")
+        print(f"  Built: {what_i_built[:70]}")
+        print(f"  Realized: {what_i_realized[:70]}")
+        print(f"  Next: {where_this_leads[:70]}")
+        print(f"  Confidence: {confidence:.0%}")
+
+        if parent_id:
+            print(f"  Chained from: {parent_id}")
+
+        return thought
+
+    def autonomous(self, max_steps: int = 5, min_confidence: float = 0.3):
+        """Run the autonomous thought-action loop.
+
+        1. Check for pending thoughts
+        2. Pick the highest-confidence one
+        3. Render it as a prompt (for the next session to act on)
+        4. After acting, generate the next thought
+        5. Repeat until confidence drops below threshold
+
+        This is the 'learning to run' mode — the agent generates its own
+        next steps from completed work.
+        """
+        print(f"Autonomous mode: max {max_steps} steps, min {min_confidence:.0%} confidence")
+        print()
+
+        for step in range(max_steps):
+            next_thought = self.thoughts.get_highest_confidence_unacted()
+
+            if not next_thought:
+                print(f"Step {step + 1}: No pending thoughts. Chain complete.")
+                break
+
+            if next_thought.confidence < min_confidence:
+                print(f"Step {step + 1}: Best thought is {next_thought.confidence:.0%} confidence "
+                      f"(below {min_confidence:.0%} threshold). Stopping — ideas have dried up.")
+                break
+
+            print(f"Step {step + 1}: {next_thought.where_this_leads[:60]}")
+            print(f"  Confidence: {next_thought.confidence:.0%}")
+            print(f"  Prompt:")
+            print(f"  {next_thought.as_prompt()[:200]}...")
+            print()
+
+        # Show chain
+        print()
+        self.thoughts.show_chain()
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -379,6 +468,26 @@ Examples:
     # Health
     sub.add_parser("health", help="System health check")
 
+    # Think
+    think_p = sub.add_parser("think", help="Generate next thought after completing work")
+    think_p.add_argument("built", help="What you just built")
+    think_p.add_argument("realized", help="What it made you realize")
+    think_p.add_argument("leads_to", help="Where this leads next")
+    think_p.add_argument("--confidence", type=float, default=0.5)
+    think_p.add_argument("--signal", default="completion",
+                         choices=["completion", "research", "failure", "user", "competition"])
+
+    # Autonomous
+    auto_p = sub.add_parser("autonomous", help="Run thought-action loop")
+    auto_p.add_argument("--max-steps", type=int, default=5)
+    auto_p.add_argument("--min-confidence", type=float, default=0.3)
+
+    # Chain
+    sub.add_parser("chain", help="Show the thought chain")
+
+    # Next
+    sub.add_parser("next", help="Show the next pending thought")
+
     args = parser.parse_args()
 
     if not args.command:
@@ -403,6 +512,23 @@ Examples:
 
     elif args.command == "health":
         orch.health()
+
+    elif args.command == "think":
+        orch.think(args.built, args.realized, args.leads_to,
+                   confidence=args.confidence, signal_source=args.signal)
+
+    elif args.command == "autonomous":
+        orch.autonomous(max_steps=args.max_steps, min_confidence=args.min_confidence)
+
+    elif args.command == "chain":
+        orch.thoughts.show_chain()
+
+    elif args.command == "next":
+        t = orch.thoughts.get_highest_confidence_unacted()
+        if t:
+            print(t.as_prompt())
+        else:
+            print("No pending thoughts.")
 
 
 if __name__ == "__main__":
