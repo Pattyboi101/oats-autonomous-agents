@@ -42,6 +42,8 @@ Built in production on [IndieStack](https://indiestack.ai). Not theory. Not a de
 | Lifecycle hooks | **Yes** — 7 events, blocking gates | No | Partial | No |
 | Memory consolidation with gates | **Yes** — 3-gate dream system | No | No | No |
 | Self-improving skills | **Yes** — validator + autoresearch loop | No | No | No |
+| Autonomous thought chains | **Yes** — agent generates its own next steps | No | No | No |
+| Context budget optimizer | **Yes** — data-driven context pruning | No | No | No |
 | Zero external dependencies | **Yes** — stdlib only | No (LangChain) | No (OpenAI SDK) | No (LangChain) |
 
 These aren't incremental improvements. Trust scoring, blackboard coordination, and deterministic replay are **features that don't exist in any other open-source agent framework** as of March 2026. Based on research from [arxiv 2505.24239](https://arxiv.org/abs/2505.24239) (credibility scoring), [arxiv 2507.01701](https://arxiv.org/abs/2507.01701) (blackboard architecture), and [OTel GenAI conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/).
