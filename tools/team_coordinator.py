@@ -60,6 +60,36 @@ class Team:
     def save_config(self, config: dict):
         self.config_path.write_text(json.dumps(config, indent=2))
 
+    # Lifecycle states (from ComposioHQ/agent-orchestrator + Overstory patterns)
+    LIFECYCLE_STATES = {
+        "idle": "waiting for tasks",
+        "working": "executing a task",
+        "reviewing": "work complete, awaiting review",
+        "stuck": "blocked or errored, needs intervention",
+        "done": "task completed successfully",
+        "shutdown": "agent shut down",
+    }
+
+    def set_member_status(self, agent_name: str, status: str, detail: str = ""):
+        """Update a member's lifecycle status."""
+        if status not in self.LIFECYCLE_STATES:
+            print(f"Invalid status: {status}. Valid: {list(self.LIFECYCLE_STATES.keys())}")
+            return
+        config = self.load_config()
+        for member in config["members"]:
+            if member["name"] == agent_name:
+                member["status"] = status
+                member["status_detail"] = detail
+                member["status_updated"] = datetime.now().isoformat()
+                self.save_config(config)
+                return
+        print(f"Member {agent_name} not found")
+
+    def get_stuck_members(self) -> list:
+        """Find members that are stuck — need escalation."""
+        config = self.load_config()
+        return [m for m in config["members"] if m.get("status") == "stuck"]
+
     def add_member(self, agent_name: str, agent_type: str = "general",
                    peer_id: str = None):
         config = self.load_config()
@@ -68,6 +98,8 @@ class Team:
             "type": agent_type,
             "peer_id": peer_id,
             "status": "idle",
+            "status_detail": "",
+            "status_updated": datetime.now().isoformat(),
             "joined_at": datetime.now().isoformat(),
             "tasks_completed": 0,
         }
