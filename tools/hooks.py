@@ -247,8 +247,14 @@ class HookEngine:
 
         return results
 
-    def _run_command(self, hook: dict, context: dict, event: str) -> HookResult:
-        """Execute a command hook."""
+    def _run_command(self, hook: dict, context: dict, event: str,
+                     attempt: int = 1) -> HookResult:
+        """Execute a command hook with retry support.
+
+        Hooks can specify "retries": N and "retry_delay": seconds.
+        Failed hooks retry up to N times before giving up.
+        From agent-orchestrator's reaction engine pattern.
+        """
         command = hook.get("command", "")
 
         # Template substitution: {file}, {tool}, {task_id}, etc.
@@ -273,6 +279,14 @@ class HookEngine:
             if event in BLOCKING_EVENTS and result.returncode == 2:
                 decision = "deny"
 
+            # Retry on failure if configured
+            max_retries = hook.get("retries", 0)
+            if result.returncode != 0 and attempt <= max_retries:
+                delay = hook.get("retry_delay", 2)
+                import time
+                time.sleep(delay)
+                return self._run_command(hook, context, event, attempt + 1)
+
             return HookResult(
                 hook_type="command",
                 command=command,
@@ -285,12 +299,16 @@ class HookEngine:
 
         except subprocess.TimeoutExpired:
             duration = int((datetime.now() - start).total_seconds() * 1000)
+            # Retry on timeout if configured
+            max_retries = hook.get("retries", 0)
+            if attempt <= max_retries:
+                return self._run_command(hook, context, event, attempt + 1)
             return HookResult(
                 hook_type="command",
                 command=command,
                 exit_code=-1,
-                stderr=f"Timeout after {timeout}s",
-                decision="allow",  # Timeouts don't block
+                stderr=f"Timeout after {timeout}s (attempt {attempt})",
+                decision="allow",
                 duration_ms=duration,
             )
 

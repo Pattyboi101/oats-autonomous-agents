@@ -287,6 +287,35 @@ class DreamAgent:
                 })
             seen[key] = path
 
+        # Grep-based signal extraction from session transcripts
+        # (Pattern from grandamenium/dream-skill, adapted for OATS)
+        transcript_patterns = {
+            "correction": r"(?i)(actually|no,\s|wrong|incorrect|not right|stop doing)",
+            "preference": r"(?i)(I prefer|always use|never use|from now on|going forward)",
+            "decision": r"(?i)(let's go with|I decided|we're using|the plan is)",
+            "recurring": r"(?i)(again|every time|keep forgetting|as usual|we always)",
+        }
+        log_dirs = [
+            Path(".oats/logs"),
+            Path(".orchestra/logs"),
+        ]
+        for log_dir in log_dirs:
+            if not log_dir.exists():
+                continue
+            for log_file in sorted(log_dir.glob("*.jsonl"))[-5:]:  # last 5 logs
+                try:
+                    content = log_file.read_text()
+                    for signal_type, pattern in transcript_patterns.items():
+                        matches = re.findall(pattern, content)
+                        if matches:
+                            signals.append({
+                                "source": f"transcript:{log_file.name}",
+                                "content": f"{len(matches)} {signal_type} signal(s) found",
+                                "type": f"transcript_{signal_type}",
+                            })
+                except Exception:
+                    pass
+
         return signals
 
     def consolidate(self, state: dict, signals: list) -> int:

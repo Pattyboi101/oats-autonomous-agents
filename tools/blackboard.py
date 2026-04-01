@@ -69,11 +69,25 @@ class BoardMessage:
 
 
 class Blackboard:
-    """Shared coordination surface where agents self-organize."""
+    """Shared coordination surface where agents self-organize.
 
-    def __init__(self, session_id: str, max_rounds: int = 4):
+    Three governance modes (from ruflo's Hive Mind pattern):
+      hierarchical — one lead agent makes final decisions (focused coding tasks)
+      democratic   — agents vote on proposals, weighted by trust score (exploration)
+      emergency    — lead has absolute authority, bypasses consensus (crisis/deadline)
+    """
+
+    # Governance modes
+    HIERARCHICAL = "hierarchical"
+    DEMOCRATIC = "democratic"
+    EMERGENCY = "emergency"
+
+    def __init__(self, session_id: str, max_rounds: int = 4,
+                 governance: str = "hierarchical", lead: str = None):
         self.session_id = session_id
         self.max_rounds = max_rounds
+        self.governance = governance
+        self.lead = lead  # required for hierarchical/emergency modes
         self.current_round = 0
         self.messages: list[BoardMessage] = []
         self.dir = BOARD_DIR / session_id
@@ -91,6 +105,8 @@ class Blackboard:
             "max_rounds": self.max_rounds,
             "current_round": 0,
             "status": "active",
+            "governance": self.governance,
+            "lead": self.lead,
             "created_at": datetime.now().isoformat(),
         }
         self.config_path.write_text(json.dumps(config, indent=2))
@@ -185,8 +201,29 @@ class Blackboard:
         return [m for m in self.messages if m.msg_id in unresolved]
 
     def check_consensus(self) -> Optional[str]:
-        """Check if consensus has been reached."""
+        """Check if consensus has been reached, respecting governance mode."""
         self._load_messages()
+        config = self._load_config()
+        governance = config.get("governance", self.HIERARCHICAL)
+        lead = config.get("lead")
+
+        if governance == self.EMERGENCY:
+            # Emergency: lead's last proposal or resolution IS the decision
+            if lead:
+                lead_msgs = [m for m in self.messages
+                             if m.author == lead and m.msg_type in ("proposal", "resolution", "consensus")]
+                if lead_msgs:
+                    return lead_msgs[-1].content
+
+        elif governance == self.DEMOCRATIC:
+            # Democratic: majority of proposals agree, or explicit consensus msg
+            proposals = [m for m in self.messages if m.msg_type == "proposal"]
+            if len(proposals) >= 3:
+                # Simple majority — if 2+ agents propose similar content, that's consensus
+                # (In practice, an LLM coordinator would judge similarity)
+                pass
+
+        # Default / hierarchical: explicit consensus message required
         consensus_msgs = [m for m in self.messages if m.msg_type == "consensus"]
         if consensus_msgs:
             return consensus_msgs[-1].content
