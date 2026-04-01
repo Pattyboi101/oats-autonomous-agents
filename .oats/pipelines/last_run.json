@@ -1,0 +1,71 @@
+{
+  "pipeline": "MOAT Full Cycle",
+  "steps": 8,
+  "passed": 8,
+  "failed": 0,
+  "skipped": 0,
+  "duration_sec": 1.4,
+  "results": [
+    {
+      "step": "read-thought",
+      "status": "ok",
+      "returncode": 0,
+      "output": "No pending thoughts. The chain has ended \u2014 or hasn't started.",
+      "stderr": "",
+      "attempts": 1
+    },
+    {
+      "step": "budget-check",
+      "status": "ok",
+      "returncode": 0,
+      "output": "=======================================================\n  Session: 0/500,000 tokens (0.0%) $0.000/$5.00\n=======================================================\n  Agent              Tokens        Limit      %     Cost     Status\n  --------------------------------------------------------------",
+      "stderr": "",
+      "attempts": 1
+    },
+    {
+      "step": "health-check",
+      "status": "ok",
+      "returncode": 0,
+      "output": "OATS Health Check\n==================================================\n\n  Memory:  4 files, 441 bytes [OK]\n  Hooks:   0 events, 0 hooks [OK]\n  Skills:  16 total, 16 grade A\n  Teams:   none\n  Agents:  9\n  Trust:   no agents tracked\n  Budget:  no budgets set\n  Boards:  none\n==================================================\n  Thoughts: none \u2014 run 'orchestrator.py think' after completing work\n==================================================",
+      "stderr": "",
+      "attempts": 1
+    },
+    {
+      "step": "act",
+      "status": "prompt",
+      "output": "echo 'Act on the highest-confidence thought \u2014 build, research, or improve'"
+    },
+    {
+      "step": "test",
+      "status": "ok",
+      "returncode": 0,
+      "output": "Self-improvement loop: skills\n\nSkill scores (16 skills):\n  [A] 100% agent-experience-audit    (local)\n  [A] 100% build-in-public           (local)\n  [A] 100% chaos-monkey              (local)\n  [A] 100% deploy-safely             (local)\n  [A] 100% ed-integration            (local)\n  [A] 100% ed-outreach-playbook      (local)\n  [A] 100% first-revenue             (local)\n  [A] 100% fstring-html-safety       (local)\n  [A] 100% orchestra-management      (local)\n  [A] 100% outreach-batch            (",
+      "stderr": "",
+      "attempts": 1
+    },
+    {
+      "step": "commit",
+      "status": "ok",
+      "returncode": 0,
+      "output": ".oats/pipelines/last_run.json               |  9 ---\n .oats/thoughts/thought-20260401-165206.json | 13 ----\n .oats/thoughts/thought-20260401-171119.json | 13 ----\n .oats/thoughts/thought-20260401-175757.json | 13 ----\n .oats/thoughts/thought-20260401-203420.json | 13 ----\n .oats/thoughts/thought-20260401-210951.json | 13 ----\n .oats/thoughts/thought-20260401-215008.json | 13 ----\n tools/pipeline.py                           | 94 +++++++++++++++++------------\n 8 files changed, 55 insertions(+), 1",
+      "stderr": "",
+      "attempts": 1
+    },
+    {
+      "step": "think-forward",
+      "status": "ok",
+      "returncode": 0,
+      "output": "Thought recorded: thought-20260401-223143\n  Built: what happened\n  Realized: what was learned\n  Next: next step\n  Confidence: 50%",
+      "stderr": "",
+      "attempts": 1
+    },
+    {
+      "step": "push",
+      "status": "ok",
+      "returncode": 0,
+      "output": "",
+      "stderr": "",
+      "attempts": 1
+    }
+  ]
+}
