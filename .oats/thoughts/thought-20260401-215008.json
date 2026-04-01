@@ -1,0 +1,13 @@
+{
+  "id": "thought-20260401-215008",
+  "what_i_built": "published IndieStack to official MCP registry \u2014 cascades to Glama and PulseMCP automatically",
+  "what_i_realized": "one publish to the official registry gets us on 3 directories. The registry is infrastructure for distribution \u2014 every directory that auto-ingests from it is free reach",
+  "where_this_leads": "monitor Glama and PulseMCP over next 24h to confirm auto-ingest. Then focus on mcpservers.org and mcp.so manual submissions. After that the awesome-claude-code submission April 7 is the next big distribution moment",
+  "confidence": 0.9,
+  "signal_source": "completion",
+  "parent_id": "thought-20260401-210951",
+  "child_id": null,
+  "created_at": "2026-04-01T21:50:08.703567",
+  "acted_on": false,
+  "outcome": null
+}
