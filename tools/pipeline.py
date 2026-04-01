@@ -146,47 +146,63 @@ class Pipeline:
                 passed += 1
                 continue
 
-            # Execute shell command
-            try:
-                result = subprocess.run(
-                    command, shell=True, capture_output=True, text=True,
-                    timeout=120, cwd=str(Path(__file__).parent.parent),
-                )
+            # Execute shell command with reaction engine (retry + escalate)
+            max_retries = step.get("retries", 0)
+            escalate_on_fail = step.get("escalate", False)
+            attempt = 0
 
-                success = result.returncode == 0
-                output = result.stdout.strip()
+            while attempt <= max_retries:
+                attempt += 1
+                try:
+                    result = subprocess.run(
+                        command, shell=True, capture_output=True, text=True,
+                        timeout=120, cwd=str(Path(__file__).parent.parent),
+                    )
 
-                if capture and output:
-                    print(f"    {output[:200]}")
+                    success = result.returncode == 0
+                    output = result.stdout.strip()
 
-                self.results.append({
-                    "step": step_name,
-                    "status": "ok" if success else "failed",
-                    "returncode": result.returncode,
-                    "output": output[:500],
-                    "stderr": result.stderr[:200] if result.stderr else "",
-                })
+                    if success:
+                        break  # Success — exit retry loop
+                    elif attempt <= max_retries:
+                        print(f"    RETRY {attempt}/{max_retries}...")
+                        time.sleep(2)  # Brief pause between retries
+                        continue
+                except subprocess.TimeoutExpired:
+                    result = type('R', (), {'returncode': -1, 'stdout': '', 'stderr': 'timeout'})()
+                    success = False
+                    output = ""
+                    if attempt <= max_retries:
+                        print(f"    TIMEOUT — RETRY {attempt}/{max_retries}...")
+                        continue
 
-                if success:
-                    passed += 1
-                    print(f"    OK")
-                else:
-                    failed += 1
-                    print(f"    FAILED (exit {result.returncode})")
-                    if result.stderr:
-                        print(f"    {result.stderr[:100]}")
+            if capture and output:
+                print(f"    {output[:200]}")
 
-                    # Gate steps stop the pipeline on failure
-                    if is_gate:
-                        print(f"    GATE FAILED — stopping pipeline")
-                        skipped = len(self.steps) - i - 1
-                        break
+            self.results.append({
+                "step": step_name,
+                "status": "ok" if success else "failed",
+                "returncode": result.returncode,
+                "output": output[:500] if success else "",
+                "stderr": result.stderr[:200] if hasattr(result, 'stderr') and result.stderr else "",
+                "attempts": attempt,
+            })
 
-            except subprocess.TimeoutExpired:
-                self.results.append({"step": step_name, "status": "timeout"})
+            if success:
+                passed += 1
+                print(f"    OK" + (f" (attempt {attempt})" if attempt > 1 else ""))
+            else:
                 failed += 1
-                print(f"    TIMEOUT")
+                print(f"    FAILED (exit {result.returncode})")
+                if hasattr(result, 'stderr') and result.stderr:
+                    print(f"    {result.stderr[:100]}")
+
+                if escalate_on_fail:
+                    print(f"    ESCALATING to master")
+
+                # Gate steps stop the pipeline on failure
                 if is_gate:
+                    print(f"    GATE FAILED — stopping pipeline")
                     skipped = len(self.steps) - i - 1
                     break
 
