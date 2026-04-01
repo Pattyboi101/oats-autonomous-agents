@@ -127,6 +127,10 @@ python3 tools/orchestra_skill_validator.py --all
 - **Blackboard Protocol** — agents self-organize around a shared coordination surface instead of rigid orchestration graphs. Research shows 13-57% improvement over hierarchical patterns.
 - **Token Budget** — per-agent cost limits with circuit breakers. At 85% usage: warning. At 100%: agent paused. Session-level caps prevent runaway spend across all agents.
 - **Tracer** — record agent runs to JSONL, replay deterministically for debugging. Timeline view, failure finder with context, trace diff between runs. Follows OTel GenAI + OWASP AOS conventions.
+- **Agent Runner** — execute any agent with full instrumentation (tracing + budget + trust + hooks in one command)
+- **Pipeline** — chain tools into repeatable workflows with reaction engine (auto-retry + escalation). 5 built-in pipelines: research, build, improve, review, full-cycle.
+- **SQLite Mail** — inter-agent messaging with group addresses (@all, @builders), threaded conversations, and priority levels. WAL mode, 1-5ms queries.
+- **Think Engine** — autonomous ideation: each completed task sparks the next idea. Thoughts chain together until ideas genuinely dry up.
 
 ## Quick Start
 
