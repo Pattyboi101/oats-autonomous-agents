@@ -1,0 +1,13 @@
+{
+  "id": "thought-20260401-175757",
+  "what_i_built": "fixed search quality \u2014 install_command penalty, SaaS ranking, FTS rebuilds",
+  "what_i_realized": "search quality directly gates revenue \u2014 cant pitch makers if agents return bad results. also Ed needs LIVE leads not static lists \u2014 people posting about Claude Code MCP right now are warm targets",
+  "where_this_leads": "research live leads for Ed \u2014 who is talking about Claude Code and MCP servers on Twitter/Reddit/HN in the last 48 hours",
+  "confidence": 0.85,
+  "signal_source": "completion",
+  "parent_id": "thought-20260401-171119",
+  "child_id": "thought-20260401-203420",
+  "created_at": "2026-04-01T17:57:57.672994",
+  "acted_on": false,
+  "outcome": null
+}
