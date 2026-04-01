@@ -1,0 +1,9 @@
+{
+  "pipeline": "MOAT Full Cycle",
+  "steps": 8,
+  "passed": 0,
+  "failed": 0,
+  "skipped": 0,
+  "duration_sec": 0.0,
+  "results": []
+}
