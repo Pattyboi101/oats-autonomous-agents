@@ -42,6 +42,10 @@ CLI:
     python3 tools/trust.py select backend frontend devops
     python3 tools/trust.py leaderboard
     python3 tools/trust.py history backend
+    python3 tools/trust.py proxy <agent_id> output_used
+    python3 tools/trust.py proxy <agent_id> output_revised
+    python3 tools/trust.py proxy <agent_id> follow_up_needed
+    python3 tools/trust.py corrections
 """
 
 import json
@@ -67,6 +71,10 @@ class AgentReputation:
     total_reward: float = 0.0
     last_updated: Optional[str] = None
     history: list = field(default_factory=list)  # [(task_id, reward, new_score, timestamp)]
+    output_used_count: int = 0
+    output_revised_count: int = 0
+    avg_completion_time_ms: float = 0.0
+    correction_rate: float = 0.0
 
 
 class TrustEngine:
@@ -245,6 +253,99 @@ class TrustEngine:
             for agent_id, output in outputs.items()
         }
 
+    # Proxy signal reward mappings — small values so they move scores slowly
+    PROXY_REWARDS = {
+        "output_used": 0.2,
+        "output_revised": -0.1,
+        "fast_completion": 0.1,
+        "slow_completion": 0.0,  # neutral — don't penalise
+        "follow_up_needed": -0.2,
+    }
+
+    PROXY_ETA = 0.05  # lower than default eta (0.15) for gradual influence
+
+    def record_proxy_signal(self, agent_id: str, signal_type: str,
+                            value: float = None):
+        """Record an implicit engagement signal and nudge trust score.
+
+        Signal types:
+            output_used      — agent output accepted without changes (weak positive)
+            output_revised   — user modified the output (weak negative)
+            fast_completion  — completed faster than agent's average (small positive)
+            slow_completion  — completed slower than average (neutral, don't penalise)
+            follow_up_needed — user had to ask for corrections (negative signal)
+
+        Each signal translates to a small reward applied via record_outcome
+        with a reduced learning rate (eta=0.05) so proxy signals move scores
+        slowly compared to explicit feedback.
+
+        Args:
+            agent_id: The agent being scored
+            signal_type: One of the supported signal types
+            value: Optional numeric value (e.g., completion time in ms)
+        """
+        if signal_type not in self.PROXY_REWARDS:
+            raise ValueError(
+                f"Unknown signal type: {signal_type}. "
+                f"Valid types: {', '.join(self.PROXY_REWARDS.keys())}"
+            )
+
+        if agent_id not in self.agents:
+            self.register(agent_id)
+
+        rep = self.agents[agent_id]
+
+        # Update proxy-specific counters
+        if signal_type == "output_used":
+            rep.output_used_count += 1
+        elif signal_type == "output_revised":
+            rep.output_revised_count += 1
+        elif signal_type in ("fast_completion", "slow_completion") and value is not None:
+            # Update rolling average completion time
+            total_tasks = rep.tasks_completed + rep.tasks_failed
+            if total_tasks > 0 and rep.avg_completion_time_ms > 0:
+                rep.avg_completion_time_ms = (
+                    (rep.avg_completion_time_ms * total_tasks + value) / (total_tasks + 1)
+                )
+            else:
+                rep.avg_completion_time_ms = value
+
+        # Recalculate correction rate
+        used_plus_revised = rep.output_used_count + rep.output_revised_count
+        if used_plus_revised > 0:
+            rep.correction_rate = round(
+                rep.output_revised_count / used_plus_revised, 4
+            )
+
+        # Apply reward via record_outcome but with reduced eta
+        reward = self.PROXY_REWARDS[signal_type]
+        if reward == 0.0:
+            # Neutral signal (e.g., slow_completion) — just save counters
+            self._save()
+            return
+
+        # Temporarily swap eta for softer proxy updates
+        original_eta = self.eta
+        self.eta = self.PROXY_ETA
+        try:
+            task_id = f"proxy:{signal_type}"
+            self.record_outcome(agent_id, task_id, reward)
+        finally:
+            self.eta = original_eta
+
+    def get_correction_rate(self, agent_id: str) -> float:
+        """Return how often this agent's output gets revised.
+
+        Returns 0.0 if the agent has no proxy signal data.
+        """
+        if agent_id not in self.agents:
+            return 0.0
+        rep = self.agents[agent_id]
+        used_plus_revised = rep.output_used_count + rep.output_revised_count
+        if used_plus_revised == 0:
+            return 0.0
+        return rep.output_revised_count / used_plus_revised
+
     def leaderboard(self) -> list:
         """Return agents sorted by trust score."""
         return sorted(
@@ -265,6 +366,8 @@ def main():
         print("  trust.py leaderboard")
         print("  trust.py history <agent>")
         print("  trust.py decay                              # apply time decay")
+        print("  trust.py proxy <agent> <signal> [value]     # proxy engagement signal")
+        print("  trust.py corrections                        # correction rates for all agents")
         return
 
     cmd = sys.argv[1]
@@ -336,6 +439,42 @@ def main():
         print("Time decay applied. Updated scores:")
         for rep in engine.leaderboard():
             print(f"  {rep.agent_id:15s} {rep.score:.3f}")
+
+    elif cmd == "proxy":
+        if len(sys.argv) < 4:
+            print("Usage: trust.py proxy <agent> <signal_type> [value]")
+            print(f"  Signal types: {', '.join(TrustEngine.PROXY_REWARDS.keys())}")
+            return
+        agent = sys.argv[2]
+        signal_type = sys.argv[3]
+        value = float(sys.argv[4]) if len(sys.argv) > 4 else None
+        engine.record_proxy_signal(agent, signal_type, value)
+        rep = engine.agents[agent]
+        reward = TrustEngine.PROXY_REWARDS.get(signal_type, 0)
+        print(f"  Proxy signal '{signal_type}' recorded for {agent} "
+              f"(reward={reward:+.1f}, eta={TrustEngine.PROXY_ETA})")
+        print(f"  {agent}: score={rep.score:.3f} "
+              f"used={rep.output_used_count} revised={rep.output_revised_count} "
+              f"correction_rate={rep.correction_rate:.1%}")
+
+    elif cmd == "corrections":
+        board = engine.leaderboard()
+        if not board:
+            print("No agents registered.")
+            return
+        agents_with_data = [r for r in board
+                            if r.output_used_count + r.output_revised_count > 0]
+        if not agents_with_data:
+            print("No proxy signal data recorded yet.")
+            return
+        print(f"{'Agent':15s} {'Used':>6s} {'Revised':>8s} {'Rate':>8s} {'Score':>7s}")
+        print("-" * 48)
+        for rep in sorted(agents_with_data,
+                          key=lambda r: r.correction_rate, reverse=True):
+            rate = engine.get_correction_rate(rep.agent_id)
+            print(f"{rep.agent_id:15s} {rep.output_used_count:>6d} "
+                  f"{rep.output_revised_count:>8d} {rate:>7.1%} "
+                  f"{rep.score:>7.3f}")
 
     else:
         print(f"Unknown command: {cmd}")

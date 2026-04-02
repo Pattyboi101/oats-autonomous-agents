@@ -15,17 +15,30 @@ The workflow:
 4. SYNTHESIZE: Lead combines findings into RECOMMENDATION.md
 5. DECIDE: Continue, correct, or complete
 
+File-based coordination (primary):
+    Message passing between agents fails in unpredictable ways (ghost peers,
+    stale IDs, connection drops). File-based coordination is more reliable.
+    Each worker writes to /tmp/oats-{task_id}-{worker}.txt.
+    The coordinator polls until all files exist or timeout.
+
 Usage:
     # Start a coordinated task
-    python3 tools/coordinator.py start "Improve search relevance" \
+    python3 tools/coordinator.py start "Improve search relevance" \\
         --workers backend frontend devops
 
+    # Start with file-based collection (recommended)
+    python3 tools/coordinator.py start-file "Improve search relevance" \\
+        --workers backend frontend --timeout 300
+
     # Worker writes their analysis
-    python3 tools/coordinator.py analyze "task-001" backend \
+    python3 tools/coordinator.py analyze "task-001" backend \\
         "Backend analysis: search scoring needs category boost..."
 
-    # Check if all workers are done
-    python3 tools/coordinator.py status "task-001"
+    # Collect file-based results (blocking, waits for all workers)
+    python3 tools/coordinator.py collect "task-id"
+
+    # Check which workers have reported
+    python3 tools/coordinator.py status "task-id"
 
     # Synthesize all analyses into recommendation
     python3 tools/coordinator.py synthesize "task-001"
@@ -33,11 +46,76 @@ Usage:
 
 import json
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 
 
 COORD_DIR = Path(".oats/coordinations")
+
+
+class FileCollector:
+    """Collect results from workers via predictable file paths.
+
+    More reliable than message passing. Each worker writes to:
+    /tmp/oats-{task_id}-{worker_name}.txt
+
+    The coordinator polls until all files exist or timeout.
+    """
+
+    def __init__(self, task_id: str, workers: list, result_dir: str = "/tmp"):
+        self.task_id = task_id
+        self.workers = list(workers)
+        self.result_dir = Path(result_dir)
+
+    def get_result_path(self, worker_name: str) -> Path:
+        """Predictable file path for a worker's result."""
+        return self.result_dir / f"oats-{self.task_id}-{worker_name}.txt"
+
+    def collect(self, timeout_seconds: int = 300, poll_interval: int = 5) -> dict:
+        """Poll for all worker result files. Returns {worker: content} when all present.
+
+        Raises TimeoutError if not all files appear within timeout.
+        """
+        deadline = time.time() + timeout_seconds
+        while time.time() < deadline:
+            if self.is_complete():
+                return self._read_all()
+            remaining = int(deadline - time.time())
+            missing = [w for w in self.workers if not self.get_result_path(w).exists()]
+            print(f"  Waiting for: {', '.join(missing)} ({remaining}s remaining)")
+            time.sleep(min(poll_interval, max(1, remaining)))
+        # Final check after timeout
+        if self.is_complete():
+            return self._read_all()
+        missing = [w for w in self.workers if not self.get_result_path(w).exists()]
+        raise TimeoutError(
+            f"Timeout after {timeout_seconds}s. Missing workers: {', '.join(missing)}"
+        )
+
+    def collect_available(self) -> dict:
+        """Non-blocking -- returns whatever results are available right now."""
+        results = {}
+        for worker in self.workers:
+            path = self.get_result_path(worker)
+            if path.exists():
+                results[worker] = path.read_text()
+        return results
+
+    def cleanup(self):
+        """Remove all result files."""
+        for worker in self.workers:
+            path = self.get_result_path(worker)
+            if path.exists():
+                path.unlink()
+
+    def is_complete(self) -> bool:
+        """All workers have written results."""
+        return all(self.get_result_path(w).exists() for w in self.workers)
+
+    def _read_all(self) -> dict:
+        """Read all worker result files."""
+        return {w: self.get_result_path(w).read_text() for w in self.workers}
 
 
 class Coordination:
@@ -51,8 +129,15 @@ class Coordination:
     def exists(self) -> bool:
         return self.config_path.exists()
 
-    def start(self, description: str, workers: list, subtasks: dict = None):
-        """Start a new coordinated task."""
+    def start(self, description: str, workers: list, subtasks: dict = None,
+              use_files: bool = False, result_dir: str = "/tmp"):
+        """Start a new coordinated task.
+
+        Args:
+            use_files: When True, workers should write results to predictable
+                       file paths instead of (or in addition to) message passing.
+                       File paths: /tmp/oats-{task_id}-{worker}.txt
+        """
         self.dir.mkdir(parents=True, exist_ok=True)
 
         config = {
@@ -64,6 +149,8 @@ class Coordination:
             "subtasks": subtasks or {w: description for w in workers},
             "created_at": datetime.now().isoformat(),
             "synthesized_at": None,
+            "use_files": use_files,
+            "result_dir": result_dir,
         }
 
         self.config_path.write_text(json.dumps(config, indent=2))
@@ -74,6 +161,11 @@ class Coordination:
         print(f"Coordination {self.task_id} started")
         print(f"  Description: {description}")
         print(f"  Workers: {', '.join(workers)}")
+        if use_files:
+            collector = FileCollector(self.task_id, workers, result_dir)
+            print(f"  Mode: file-based collection")
+            for w in workers:
+                print(f"    {w} -> {collector.get_result_path(w)}")
         if subtasks:
             for w, task in subtasks.items():
                 print(f"    {w}: {task[:80]}")
@@ -118,6 +210,57 @@ class Coordination:
         if all_done:
             print(f"All workers complete — ready for synthesis")
 
+    def collect_results(self, timeout_seconds: int = 300, poll_interval: int = 5) -> dict:
+        """Collect results using FileCollector. Only works for file-based coordinations."""
+        if not self.exists():
+            print(f"Coordination {self.task_id} not found")
+            return {}
+
+        config = self.load()
+        if not config.get("use_files"):
+            print(f"Coordination {self.task_id} is not file-based. "
+                  f"Use 'start-file' to create file-based coordinations.")
+            return {}
+
+        workers = list(config["workers"].keys())
+        result_dir = config.get("result_dir", "/tmp")
+        collector = FileCollector(self.task_id, workers, result_dir)
+
+        available = collector.collect_available()
+        total = len(workers)
+        done = len(available)
+        print(f"File collection for {self.task_id}: {done}/{total} workers")
+
+        if done == total:
+            print(f"All results collected:")
+            for worker, content in available.items():
+                print(f"\n{'='*50}")
+                print(f"  Worker: {worker}")
+                print(f"  Size: {len(content)} chars")
+                print(f"{'='*50}")
+                print(content[:500])
+                if len(content) > 500:
+                    print(f"  ... ({len(content) - 500} more chars)")
+            return available
+
+        # Blocking wait
+        print(f"Waiting for remaining workers (timeout: {timeout_seconds}s)...")
+        try:
+            results = collector.collect(timeout_seconds, poll_interval)
+            print(f"\nAll {total} results collected:")
+            for worker, content in results.items():
+                print(f"\n{'='*50}")
+                print(f"  Worker: {worker}")
+                print(f"  Size: {len(content)} chars")
+                print(f"{'='*50}")
+                print(content[:500])
+                if len(content) > 500:
+                    print(f"  ... ({len(content) - 500} more chars)")
+            return results
+        except TimeoutError as e:
+            print(f"Timeout: {e}")
+            return collector.collect_available()
+
     def status(self):
         """Show coordination status."""
         if not self.exists():
@@ -142,6 +285,21 @@ class Coordination:
             print(f"  {icon} {name:15s} {info['status']:12s}{size}")
             if subtask and subtask != config["description"]:
                 print(f"     task: {subtask[:70]}")
+
+        # File-based collection status
+        if config.get("use_files"):
+            workers = list(config["workers"].keys())
+            result_dir = config.get("result_dir", "/tmp")
+            collector = FileCollector(self.task_id, workers, result_dir)
+            available = collector.collect_available()
+            file_done = len(available)
+            print(f"\n  File collection: {file_done}/{total} files written")
+            for w in workers:
+                path = collector.get_result_path(w)
+                exists = path.exists()
+                status_icon = "[x]" if exists else "[ ]"
+                size_str = f" ({path.stat().st_size} bytes)" if exists else ""
+                print(f"    {status_icon} {path}{size_str}")
 
         if config.get("synthesized_at"):
             print(f"\n  Synthesized: {config['synthesized_at']}")
@@ -247,7 +405,9 @@ def main():
         print()
         print("Usage:")
         print("  coordinator.py start <description> --workers w1 w2 w3")
+        print("  coordinator.py start-file <description> --workers w1 w2 [--timeout 300]")
         print("  coordinator.py analyze <task-id> <worker> <analysis>")
+        print("  coordinator.py collect <task-id> [--timeout 300]")
         print("  coordinator.py status <task-id>")
         print("  coordinator.py synthesize <task-id>")
         print("  coordinator.py complete <task-id> [decision]")
@@ -258,6 +418,11 @@ def main():
         print("  2. Workers analyze independently and write findings")
         print("  3. Lead synthesizes all analyses into recommendation")
         print("  4. Decision: continue, correct, or complete")
+        print()
+        print("File-based mode (recommended):")
+        print("  start-file creates predictable paths: /tmp/oats-{id}-{worker}.txt")
+        print("  Workers write results to those paths. More reliable than messaging.")
+        print("  collect waits for all files to appear, or shows what's available.")
         return
 
     cmd = sys.argv[1]
@@ -284,6 +449,54 @@ def main():
         task_id = generate_task_id()
         coord = Coordination(task_id)
         coord.start(desc, workers, subtasks)
+
+    elif cmd == "start-file":
+        if len(sys.argv) < 3:
+            print("Usage: coordinator.py start-file <description> --workers w1 w2 [--timeout 300]")
+            return
+
+        desc = sys.argv[2]
+        workers = []
+        timeout = 300
+
+        # Parse --workers (collect args until next flag or end)
+        if "--workers" in sys.argv:
+            idx = sys.argv.index("--workers")
+            workers = []
+            for arg in sys.argv[idx + 1:]:
+                if arg.startswith("--"):
+                    break
+                workers.append(arg)
+
+        # Parse --timeout
+        if "--timeout" in sys.argv:
+            idx = sys.argv.index("--timeout")
+            if idx + 1 < len(sys.argv):
+                timeout = int(sys.argv[idx + 1])
+
+        if not workers:
+            workers = ["backend", "frontend", "devops"]
+
+        task_id = generate_task_id()
+        coord = Coordination(task_id)
+        coord.start(desc, workers, use_files=True)
+        print(f"\n  Task ID: {task_id}")
+        print(f"  Workers should write results to their file paths above.")
+        print(f"  Then run: python3 tools/coordinator.py collect {task_id}")
+
+    elif cmd == "collect":
+        if len(sys.argv) < 3:
+            print("Usage: coordinator.py collect <task-id> [--timeout 300]")
+            return
+
+        task_id = sys.argv[2]
+        timeout = 300
+        if "--timeout" in sys.argv:
+            idx = sys.argv.index("--timeout")
+            if idx + 1 < len(sys.argv):
+                timeout = int(sys.argv[idx + 1])
+
+        Coordination(task_id).collect_results(timeout_seconds=timeout)
 
     elif cmd == "analyze":
         if len(sys.argv) < 5:
