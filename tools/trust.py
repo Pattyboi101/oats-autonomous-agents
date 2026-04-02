@@ -13,7 +13,7 @@ How it works:
 - Three selection strategies: greedy, weighted (Thompson-inspired), explore (UCB1)
 - Weighted aggregation: combine multiple agent outputs by trust score
 
-Integrates with team_coordinator and coordinator for task allocation.
+Integrates with coordinator for task allocation.
 
 Based on:
 - Credibility Scoring for Adversary-Resistant Multi-Agent Systems (arxiv 2505.24239)

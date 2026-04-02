@@ -3,7 +3,7 @@
 
 This is the main entry point for running OATS as an autonomous system.
 It coordinates:
-- Team management (team_coordinator)
+- Team management (coordinator)
 - Lifecycle hooks (hooks engine)
 - Memory context (memory scoper)
 - Skill loading (skill loader)
@@ -46,7 +46,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from tools.hooks import HookEngine, VALID_EVENTS
 from tools.memory_scoper import MemoryScoper
-from tools.team_coordinator import Team, TEAMS_DIR
+from tools.coordinator import Team, TEAMS_DIR
 from tools.skill_loader import SkillLoader
 from tools.trust import TrustEngine
 from tools.budget import BudgetTracker
