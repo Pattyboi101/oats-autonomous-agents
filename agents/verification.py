@@ -163,7 +163,7 @@ class VerificationAgent:
         # 4. Orchestra validation
         if "orchestra" in types:
             self.check("Skill validator",
-                        "python3 .orchestra/sandbox/tools/orchestra_skill_validator.py --all 2>&1 | tail -3")
+                        "python3 tools/skill_validator.py --orchestra --all 2>&1 | tail -3")
 
         # Type-specific checks
         print()
@@ -210,7 +210,7 @@ class VerificationAgent:
             self.check("Smoke test", "python3 smoke_test.py")
         if "orchestra" in types:
             self.check("Skills valid",
-                        "python3 .orchestra/sandbox/tools/orchestra_skill_validator.py --all 2>&1 | tail -1")
+                        "python3 tools/skill_validator.py --orchestra --all 2>&1 | tail -1")
 
         print()
         print("--- Security ---")

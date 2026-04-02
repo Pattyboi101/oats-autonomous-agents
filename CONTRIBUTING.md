@@ -5,7 +5,7 @@ PRs welcome. Here's how to contribute.
 ## Adding a Skill
 
 1. Create `skills/your-skill-name/SKILL.md` following the [authoring standard](reference/skill-authoring-standard.md)
-2. Run the validator: `python3 tools/orchestra_skill_validator.py skills/your-skill-name/SKILL.md`
+2. Run the validator: `python3 tools/skill_validator.py --orchestra skills/your-skill-name/SKILL.md`
 3. Score must be 70%+ (grade B or higher)
 4. Submit PR with: what the skill does, where you used it, what score it gets
 

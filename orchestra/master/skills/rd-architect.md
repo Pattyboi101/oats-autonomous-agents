@@ -88,7 +88,7 @@ LOOP:
 ### For Skills
 ```bash
 # Evaluate current state
-python3 .orchestra/sandbox/tools/orchestra_skill_validator.py --all
+python3 tools/skill_validator.py --orchestra --all
 
 # Identify lowest scorer
 # Fix ONE thing (add frontmatter, add modes, add triggers)

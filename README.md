@@ -45,6 +45,8 @@ Built in production on [IndieStack](https://indiestack.ai). Not theory. Not a de
 | Autonomous thought chains | **Yes** — agent generates its own next steps | No | No | No |
 | Context budget optimizer | **Yes** — data-driven context pruning | No | No | No |
 | Workflow pipelines | **Yes** — chain tools into repeatable cycles | No | No | Partial |
+| Silent user profiling | **Yes** | No | No | No |
+| Iterative test harness | **Yes** | No | No | No |
 | Zero external dependencies | **Yes** — stdlib only | No (LangChain) | No (OpenAI SDK) | No (LangChain) |
 
 These aren't incremental improvements. Trust scoring, blackboard coordination, and deterministic replay are **features that don't exist in any other open-source agent framework** as of March 2026. Based on research from [arxiv 2505.24239](https://arxiv.org/abs/2505.24239) (credibility scoring), [arxiv 2507.01701](https://arxiv.org/abs/2507.01701) (blackboard architecture), and [OTel GenAI conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/).
@@ -78,6 +80,8 @@ The S&QA agent caught a bug in our outreach emails before 13 real people clicked
 
 ### Agents — autonomous testing & monitoring
 
+9 agents built for real production workloads:
+
 | Agent | What it does | How we use it |
 |-------|-------------|--------------|
 | **Chaos Monkey** | SQLi, XSS, auth bypass, rate limit testing | Found reflected XSS in its first run |
@@ -86,6 +90,9 @@ The S&QA agent caught a bug in our outreach emails before 13 real people clicked
 | **Token Economist** | Tracks per-department costs | Found Frontend costs 5x more than DevOps |
 | **Event Reactor** | Watches prod for signups, claims, spikes | Auto-notifies on real-time events |
 | **Results Tracker** | Mini CRM for outreach | Tracks which templates get replies |
+| **Dream** | Memory consolidation with 3-gate system | Compresses learnings between sessions |
+| **Verification** | Pre-deploy checks across project types | Catches secrets, syntax errors, broken skills |
+| **User Profiler** | Silent visitor profiling from behavior | Personalizes experience without accounts |
 
 ### Skills — battle-tested, validated, scored
 
@@ -93,7 +100,7 @@ The S&QA agent caught a bug in our outreach emails before 13 real people clicked
 
 ```bash
 # Validate all skills
-python3 tools/orchestra_skill_validator.py --all
+python3 tools/skill_validator.py --orchestra --all
 
 # Current score: 100% average, all 16 skills grade A
 ```
@@ -113,13 +120,11 @@ python3 tools/orchestra_skill_validator.py --all
 | Production Data Patch | Backend | Safe SSH database updates |
 | + 5 more concept skills | Various | Token economist, synthetic user personas, etc. |
 
-### Tools — quality infrastructure
+### Tools — 20 quality infrastructure tools
 
-- **Skill Validator** — scores skills against the authoring standard (frontmatter, modes, triggers, artifacts)
-- **Quality Scorer** — multi-dimensional skill quality assessment
+- **Skill Validator** — unified validator with three modes: structure validation, multi-dimensional quality scoring with letter grades, and orchestra skill validation
 - **Session State** — persistent state that survives restarts
 - **Skill Loader** — discover, search, and install skills from multiple sources (local, department, user-level, GitHub)
-- **Team Coordinator** — agent team management with shared task lists, dependency tracking, file-locked task claiming, and message routing
 - **Hooks Engine** — lifecycle event automation (PreToolUse, PostToolUse, Stop, TaskCompleted) with command/prompt/agent execution types and blocking gates
 - **Memory Scoper** — three-tier memory hierarchy (user/project/department) with path-scoped rules, context budgeting, and health checks for bloat/staleness
 - **Coordinator** — parallel worker dispatch with synthesis: decompose task, workers analyze independently, lead synthesizes into RECOMMENDATION.md
@@ -131,6 +136,8 @@ python3 tools/orchestra_skill_validator.py --all
 - **Pipeline** — chain tools into repeatable workflows with reaction engine (auto-retry + escalation). 5 built-in pipelines: research, build, improve, review, full-cycle.
 - **SQLite Mail** — inter-agent messaging with group addresses (@all, @builders), threaded conversations, and priority levels. WAL mode, 1-5ms queries.
 - **Think Engine** — autonomous ideation: each completed task sparks the next idea. Thoughts chain together until ideas genuinely dry up.
+- **Test Harness** — iterative test runner that validates agent outputs against expected results, with retry logic and diff reporting
+- **User Profiler** — silent visitor profiling from behavioral signals, builds user context without requiring accounts or logins
 
 ## Quick Start
 
@@ -140,7 +147,7 @@ Prerequisites: [Claude Code](https://claude.ai/claude-code) v2.1.80+, [bun](http
 
 ```bash
 # Clone
-git clone https://github.com/oatcake21/oats-autonomous-agents.git
+git clone https://github.com/Pattyboi101/oats-autonomous-agents.git
 cd oats-autonomous-agents
 
 # Install claude-peers
@@ -258,15 +265,15 @@ The git history of IndieStack is the proof. This README was not written by a hum
 PRs welcome. To add a skill:
 
 1. Create `skills/your-skill-name/SKILL.md` following the [authoring standard](reference/skill-authoring-standard.md)
-2. Run the validator: `python3 tools/orchestra_skill_validator.py skills/your-skill-name/SKILL.md`
+2. Run the validator: `python3 tools/skill_validator.py --orchestra skills/your-skill-name/SKILL.md`
 3. Score must be 70%+ (grade B or higher)
 4. Submit PR with: what the skill does, where you used it, what score it gets
 
 ## Built by
 
-[oatcake21](https://github.com/oatcake21) — with a lot of help from Claude.
+[Pattyboi101](https://github.com/Pattyboi101) — with a lot of help from Claude.
 
-Part of the [IndieStack](https://indiestack.ai) ecosystem — the discovery layer between AI coding agents and 3,100+ developer tools.
+Part of the [IndieStack](https://indiestack.ai) ecosystem — the discovery layer between AI coding agents and 8,000+ developer tools.
 
 ## License
 
