@@ -93,60 +93,34 @@ class UserProfiler:
                 pass
 
     def _save(self):
-        """Persist profiles and observations to disk."""
         self.state_file.parent.mkdir(parents=True, exist_ok=True)
-        data = {
-            "profiles": self.profiles,
-            "observations": self._observations,
-        }
+        data = {"profiles": self.profiles, "observations": self._observations}
         self.state_file.write_text(json.dumps(data, indent=2))
 
     def _classify(self, text: str) -> str:
-        """Auto-classify a text description into a category.
-
-        Scans for keyword matches. Falls back to 'general' if nothing fits.
-        """
+        """Auto-classify text into a category by keyword match. Falls back to 'general'."""
         text_lower = text.lower()
-        best_category = "general"
-        best_score = 0
-
-        for category, keywords in CATEGORY_KEYWORDS.items():
-            score = sum(1 for kw in keywords if kw in text_lower)
-            if score > best_score:
-                best_score = score
-                best_category = category
-
-        return best_category
+        best, best_n = "general", 0
+        for cat, kws in CATEGORY_KEYWORDS.items():
+            n = sum(1 for kw in kws if kw in text_lower)
+            if n > best_n:
+                best, best_n = cat, n
+        return best
 
     def observe(self, user_id: str, event_type: str, data: dict | str):
-        """Record an observation silently. Never announces to the user.
-
-        data: dict with 'category'/'detail' keys, or a plain string (auto-classified).
-        """
+        """Record an observation silently. data: dict or plain string."""
         if event_type not in EVENT_TYPES:
             raise ValueError(f"Invalid event_type '{event_type}'. Must be one of {EVENT_TYPES}")
-
-        # Normalise data to dict
         if isinstance(data, str):
             data = {"category": self._classify(data), "detail": data}
         elif "category" not in data:
             data["category"] = self._classify(data.get("detail", ""))
-
         observation = {
-            "event_type": event_type,
-            "category": data["category"],
-            "detail": data.get("detail", ""),
-            "timestamp": datetime.now().isoformat(),
+            "event_type": event_type, "category": data["category"],
+            "detail": data.get("detail", ""), "timestamp": datetime.now().isoformat(),
         }
-
-        if user_id not in self._observations:
-            self._observations[user_id] = []
-        self._observations[user_id].append(observation)
-
-        # Keep last 500 observations per user
+        self._observations.setdefault(user_id, []).append(observation)
         self._observations[user_id] = self._observations[user_id][-500:]
-
-        # Rebuild profile from observations
         self._rebuild_profile(user_id)
         self._save()
 
