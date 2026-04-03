@@ -5,14 +5,42 @@
   "budget_cap_usd": 5.00,
   "require_approval_for_deploy": true,
   "require_approval_for_commit": false,
+  "architecture": "manager-ceo",
   "models": {
-    "master": "opus",
-    "strategy": "opus",
+    "manager": "sonnet",
+    "ceo": "opus",
     "frontend": "sonnet",
     "backend": "sonnet",
     "devops": "haiku",
     "content": "sonnet",
     "mcp": "sonnet"
+  },
+  "escalation": {
+    "always": [
+      "task touches auth or payment files",
+      "multi-department coordination (2+ departments)",
+      "revenue or positioning decisions",
+      "architecture changes (new tables, routes, MCP tools)",
+      "user explicitly requests CEO review",
+      "manager has attempted a fix twice and it's still failing"
+    ],
+    "never": [
+      "file reads, searches, grep, status checks",
+      "single-file edits with clear scope",
+      "smoke tests, deploys (with user approval)",
+      "git operations (commits, diffs, logs)",
+      "answering factual questions from RAG or memory",
+      "spawning routine subagents"
+    ],
+    "brief_max_tokens": 500
+  },
+  "rag": {
+    "enabled": false,
+    "server": "tools/rag_server.py",
+    "seed": "tools/rag_seed.py",
+    "working_dir": ".rag",
+    "embedding_model": "BAAI/bge-small-en-v1.5",
+    "use_ollama": false
   },
   "departments": {
     "frontend": {
@@ -44,12 +72,20 @@
       "emoji": "🔌",
       "allowed_paths": ["src/", "pyproject.toml", "package.json"],
       "description": "External APIs, integrations, publishing"
-    },
-    "strategy": {
-      "name": "Strategy & QA",
-      "emoji": "🎯",
-      "allowed_paths": ["*"],
-      "description": "Reviews all plans before execution. Challenges assumptions, audits output, flags overconfidence. Read-only access to everything."
     }
+  },
+  "ceo": {
+    "name": "CEO / Strategy & QA",
+    "emoji": "🎯",
+    "allowed_paths": ["*"],
+    "description": "Strategic gate. Reviews multi-department plans, revenue decisions, architecture changes. Departments can escalate directly for complex technical issues. Persistent in tmux.",
+    "review_criteria": [
+      "evidence of demand (not just good idea)",
+      "revenue path within 30 days",
+      "opportunity cost vs current priorities",
+      "overconfidence signals",
+      "strategic coherence with existing work"
+    ],
+    "verdict_format": "approve | challenge | veto"
   }
 }

@@ -10,3 +10,5 @@ __pycache__/
 .orchestra/results_tracker.json
 *.db
 .env
+.rag/
+.oats-mcp-config.json

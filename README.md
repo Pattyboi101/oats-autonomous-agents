@@ -14,20 +14,24 @@ Everything you need to run AI agents as an autonomous team. Not a skill list. No
 You (human)
     │
     ▼
-Master Agent ─── decomposes task
+Manager (Sonnet) ─── handles 80%+ of work, fast & cheap
     │
-    ▼
-Strategy & QA ─── approve / challenge / veto
+    ├── escalation rules fire? ──▶ CEO (Opus) ─── approve / challenge / veto
+    │                                   │
+    │                                   ▼
+    │                              verdict returned
     │
     ▼
 Department Agents ─── execute in parallel
-    │
+    │                  (can escalate directly to CEO)
     ▼
 Testing Agents ─── verify the work
     │
     ▼
-Memory + Playbook ─── agents remember and improve
+Shared RAG ─── agents query knowledge, not read full files
 ```
+
+The Manager/CEO split saves 60-70% on tokens by running routine work on a cheaper model while preserving strategic quality. Escalation rules are deterministic (ALWAYS/NEVER lists) — no ambiguity about what needs senior review.
 
 Built in production on [IndieStack](https://indiestack.ai). Not theory. Not a demo. A system that ships real products while the founders sleep.
 
@@ -35,6 +39,9 @@ Built in production on [IndieStack](https://indiestack.ai). Not theory. Not a de
 
 | Feature | OATS | CrewAI | AutoGen | LangGraph |
 |---------|------|--------|---------|-----------|
+| **Manager/CEO model split** | **Yes** — cheap model for routine, expensive for strategy | No | No | No |
+| **Deterministic escalation rules** | **Yes** — ALWAYS/NEVER lists, config-driven | No | No | No |
+| **Shared RAG knowledge base** | **Yes** — LightRAG MCP, agents query not read | No | No | No |
 | Agent trust scoring | **Yes** — Bayesian reputation with streak bonuses | No | No | No |
 | Blackboard protocol | **Yes** — agents self-organize, no rigid graphs | No | No | No |
 | Token budget + circuit breakers | **Yes** — per-agent limits, auto-pause at 100% | No | No | No |
@@ -47,14 +54,17 @@ Built in production on [IndieStack](https://indiestack.ai). Not theory. Not a de
 | Workflow pipelines | **Yes** — chain tools into repeatable cycles | No | No | Partial |
 | Silent user profiling | **Yes** | No | No | No |
 | Iterative test harness | **Yes** | No | No | No |
-| Zero external dependencies | **Yes** — stdlib only | No (LangChain) | No (OpenAI SDK) | No (LangChain) |
+| Zero external dependencies | **Yes** — stdlib only (RAG optional) | No (LangChain) | No (OpenAI SDK) | No (LangChain) |
 
-These aren't incremental improvements. Trust scoring, blackboard coordination, and deterministic replay are **features that don't exist in any other open-source agent framework** as of March 2026. Based on research from [arxiv 2505.24239](https://arxiv.org/abs/2505.24239) (credibility scoring), [arxiv 2507.01701](https://arxiv.org/abs/2507.01701) (blackboard architecture), and [OTel GenAI conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/).
+These aren't incremental improvements. Manager/CEO model allocation, deterministic escalation, shared RAG, trust scoring, blackboard coordination, and deterministic replay are **features that don't exist in any other open-source agent framework** as of April 2026. Based on research from [arxiv 2505.24239](https://arxiv.org/abs/2505.24239) (credibility scoring), [arxiv 2507.01701](https://arxiv.org/abs/2507.01701) (blackboard architecture), and [OTel GenAI conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/).
 
 ## What's inside
 
 ### Orchestra — multi-agent coordination
-6 specialist departments + S&QA gating. Real-time communication via [claude-peers](https://github.com/louislva/claude-peers-mcp). Every task goes through a Strategy & QA agent that can approve, challenge, or veto before any work executes.
+
+**Manager/CEO architecture:** Manager (Sonnet) handles routine work — task decomposition, single-department dispatch, direct coding. CEO (Opus) is a persistent strategic gate, consulted only when deterministic escalation rules fire. Departments can escalate directly to the CEO for complex technical issues.
+
+5 specialist departments + CEO strategic gate. Real-time communication via [claude-peers](https://github.com/louislva/claude-peers-mcp). Strategic decisions go through the CEO who can approve, challenge, or veto.
 
 ```bash
 # One-shot dispatch
@@ -120,8 +130,11 @@ python3 tools/skill_validator.py --orchestra --all
 | Production Data Patch | Backend | Safe SSH database updates |
 | + 5 more concept skills | Various | Token economist, synthetic user personas, etc. |
 
-### Tools — 20 quality infrastructure tools
+### Tools — 23 quality infrastructure tools
 
+- **Escalation Engine** *(new)* — deterministic ALWAYS/NEVER rules for Manager-to-CEO routing. Config-driven, CLI for checking tasks, formatting CEO briefs, and explaining which rules fire. Replaces ad-hoc "review everything" patterns.
+- **RAG Server** *(new)* — LightRAG MCP server with fastembed (ONNX, no PyTorch). Shared knowledge base all agents can query. Passthrough LLM for instant operation (no Ollama needed). 4 tools: query, store, store_document, delete.
+- **RAG Seed** *(new)* — Auto-discovers knowledge files from standard OATS locations and indexes them. Supports manual paths and dry-run mode.
 - **Skill Validator** — unified validator with three modes: structure validation, multi-dimensional quality scoring with letter grades, and orchestra skill validation
 - **Session State** — persistent state that survives restarts
 - **Skill Loader** — discover, search, and install skills from multiple sources (local, department, user-level, GitHub)
@@ -155,9 +168,14 @@ git clone https://github.com/louislva/claude-peers-mcp.git ~/claude-peers-mcp
 cd ~/claude-peers-mcp && bun install
 claude mcp add --scope user --transport stdio claude-peers -- ~/.bun/bin/bun ~/claude-peers-mcp/server.ts
 
-# Launch the orchestra
+# Launch the orchestra (CEO + Manager + 5 departments)
 orchestra/launch.sh
 tmux attach -t orchestra
+
+# Optional: launch with shared RAG knowledge base
+pip install lightrag-hku fastembed mcp[cli]
+python3 tools/rag_seed.py           # index knowledge files
+RAG=1 orchestra/launch.sh           # all agents get RAG MCP tools
 ```
 
 ### Option B: Just the skills
@@ -178,13 +196,25 @@ python3 agents/build_in_public.py
 python3 agents/token_economist.py
 ```
 
-### Option D: Just the tools (trust, blackboard, budget, tracer)
+### Option D: Just the tools (trust, blackboard, budget, escalation, RAG, tracer)
 
 ```bash
 # Quickstart — sets up sample config and runs diagnostics
 bash quickstart.sh
 
-# Or use tools directly
+# Escalation engine — should this task go to the CEO?
+python3 tools/escalation.py check "Refactor the payment handler" --files payments.py
+python3 tools/escalation.py explain "Add rate limiting to search"
+python3 tools/escalation.py rules
+python3 tools/escalation.py brief "New pricing tier" --recommendation "Use Stripe meters"
+
+# RAG knowledge base — shared context for all agents
+pip install lightrag-hku fastembed mcp[cli]
+python3 tools/rag_seed.py --dry-run          # see what would be indexed
+python3 tools/rag_seed.py                     # index everything
+python3 tools/rag_server.py                   # run as MCP server
+
+# Trust, blackboard, budget, tracer
 python3 tools/trust.py register backend frontend devops
 python3 tools/trust.py record backend task-001 0.8
 python3 tools/trust.py leaderboard
@@ -227,8 +257,8 @@ MOAT Brain (cloud, hourly)
 .orchestra/directives/pending/
     │
     ▼
-Master Agent (local tmux)
-    ├── Strategy & QA (veto power)
+Manager (Sonnet, local tmux)
+    ├── CEO (Opus, veto power)
     ├── Frontend / Backend / DevOps / Content / MCP
     └── results flow back to MOAT brain
 ```
@@ -248,7 +278,7 @@ python3 orchestrator.py think "what I built" "what I realized" "where this leads
 
 ## How it was built
 
-This framework was built by an AI agent (Claude) managing 6 department agents on [IndieStack](https://indiestack.ai) over 3 days. The Master agent:
+This framework was built by AI agents (Claude) managing department agents on [IndieStack](https://indiestack.ai). The Manager agent:
 
 - Dispatched tasks to Frontend, Backend, DevOps, Content, MCP, and Strategy departments
 - Had every task reviewed by S&QA before execution
