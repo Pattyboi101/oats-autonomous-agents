@@ -111,14 +111,33 @@ echo "  Switch:  Ctrl+B then window number"
 echo "  List:    Ctrl+B then W"
 echo "  Detach:  Ctrl+B then D"
 echo ""
-echo "  Paste each agent's init prompt:"
+# Wait for agents, confirm dev-channels dialog, then send init prompts
+echo "  Waiting 8 seconds for agents to start..."
+sleep 8
+
+echo "  Confirming dev-channels dialog..."
+for agent in "${AGENT_ORDER[@]}"; do
+  tmux send-keys -t "$SESSION:$agent" "Enter"
+  sleep 0.5
+done
+
+echo "  Waiting 5 more seconds for agents to load..."
+sleep 5
+
+echo "  Sending init prompts..."
 for agent in "${AGENT_ORDER[@]}"; do
   if [ "$agent" = "manager" ]; then
-    echo "    $agent: cat orchestra/master/init-prompt.md"
+    init_file="$REPO_DIR/orchestra/master/init-prompt.md"
   elif [ "$agent" = "ceo" ]; then
-    echo "    $agent: cat orchestra/ceo/init-prompt.md"
+    init_file="$REPO_DIR/orchestra/ceo/init-prompt.md"
   else
-    echo "    $agent: cat orchestra/departments/$agent/init-prompt.md"
+    init_file="$REPO_DIR/orchestra/departments/$agent/init-prompt.md"
+  fi
+  if [ -f "$init_file" ]; then
+    init_content=$(cat "$init_file")
+    tmux send-keys -t "$SESSION:$agent" "$init_content" Enter
+    echo "  Sent init prompt to $agent"
+    sleep 2
   fi
 done
 echo ""
