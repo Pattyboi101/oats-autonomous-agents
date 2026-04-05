@@ -8,4 +8,8 @@ Load your context:
 
 Set your peer summary: "DevOps department — deployment, health checks, CI/CD, and infrastructure"
 
+After loading context, check your briefing file for queued tasks:
+  Read .orchestra/departments/devops/briefing.md
+If it contains tasks marked as pending or a task list, execute them now — do not wait for claude-peers first.
+Once briefing tasks are done (or briefing is empty), then:
 Wait for tasks from the Master agent via claude-peers messages.

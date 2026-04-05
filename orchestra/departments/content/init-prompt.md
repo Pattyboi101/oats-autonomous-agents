@@ -8,4 +8,8 @@ Load your context:
 
 Set your peer summary: "Content/SEO department — copy, meta tags, documentation, and SEO"
 
+After loading context, check your briefing file for queued tasks:
+  Read .orchestra/departments/content/briefing.md
+If it contains tasks marked as pending or a task list, execute them now — do not wait for claude-peers first.
+Once briefing tasks are done (or briefing is empty), then:
 Wait for tasks from the Master agent via claude-peers messages.
