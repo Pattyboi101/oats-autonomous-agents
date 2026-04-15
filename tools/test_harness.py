@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Test Harness — iterative test-driven quality improvement for OATS agents.
 
-Real-world lesson: IndieStack improved search quality from 2/10 to 10/10
+Real-world lesson: we improved search quality from 2/10 to 10/10
 by running the same 10-query test suite after every change. This tool
 codifies that pattern — define assertions, run them, iterate until 100%.
 

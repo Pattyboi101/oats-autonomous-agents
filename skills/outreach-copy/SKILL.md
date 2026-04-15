@@ -18,7 +18,7 @@ Check:
 - What's the target audience? (Makers, developers, press, community)
 - What data do we have? (MCP views, migration paths, GitHub stars)
 - What's already been sent? (Check playbook for previous batches)
-- What tone worked before? (Casual from "Pat", data-first, no hype)
+- What tone worked before? (Casual from the founder, data-first, no hype)
 
 ## How This Skill Works
 
@@ -42,7 +42,7 @@ Subject: AI agents are recommending {tool_name}
 Hey, AI agents recommended {tool_name} {count} times to developers
 this month on Your Project. Claim your listing to see the data:
 your-project.ai/claim/magic?tool={slug}
--- Pat
+-- [founder name]
 ```
 
 **Zero MCP views (most tools):**
@@ -52,12 +52,12 @@ Subject: {tool_name} is on Your Project — want to claim it?
 Hi, {tool_name} has {stars}k GitHub stars but AI agents couldn't find it.
 We've added it so agents in Claude, Cursor, and Windsurf can recommend it.
 Claim: your-project.ai/claim/magic?tool={slug}
--- Pat
+-- [founder name]
 ```
 
 Rules:
 - Under 80 words
-- From "Pat" not "Patrick"
+- From the founder's first name — casual, not corporate
 - No "opportunity", "partnership", "collaboration" in subject lines
 - One link, one action (claim)
 - No upsell

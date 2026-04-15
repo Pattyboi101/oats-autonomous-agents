@@ -13,8 +13,8 @@ How it works:
 - Old observations (>30 days) decay to half weight
 - Preferences inject into prompts to silently adapt agent output
 
-Based on: IndieStack's anonymous personalisation — builds profiles from search
-history to silently improve tool recommendations.
+Based on: anonymous personalisation patterns — builds profiles from search
+history to silently improve recommendations.
 
 Usage:
     profiler = UserProfiler()

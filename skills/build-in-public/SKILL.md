@@ -62,14 +62,14 @@ Skip:
 
 ### Step 3: Draft content by platform
 
-**Twitter/X** — under 280 chars, data-first, no hashtags, no emojis unless Patrick uses them.
+**Twitter/X** — under 280 chars, data-first, no hashtags, no emojis unless the operator uses them.
 
 **Dev.to / Hashnode** — 400-800 words. Data journalism tone. Numbers speak; editorialise sparingly. End with link to relevant page.
 
 **Changelog entry** — one sentence, past tense, link to PR or commit.
 
 ### Step 4: Human review gate
-All drafts go to `/tmp/build_in_public_YYYY-MM-DD.md`. Patrick reviews and posts manually. This agent NEVER posts autonomously.
+All drafts go to `/tmp/build_in_public_YYYY-MM-DD.md`. the operator reviews and posts manually. This agent NEVER posts autonomously.
 
 ## Proactive Triggers
 
@@ -88,7 +88,7 @@ Infrastructure needed before this skill can run autonomously:
 
 3. **Content history log** — A record of what has already been posted so the agent doesn't draft the same story twice. File: `.orchestra/memory/posted.md`.
 
-4. **Patrick's posting cadence defined** — How often? Which platforms? This should be in `content/memory.md` once established.
+4. **the operator's posting cadence defined** — How often? Which platforms? This should be in `content/memory.md` once established.
 
 ## Output Artifacts
 

@@ -2,7 +2,7 @@
 """
 Chaos Monkey — Your Project Security Probe
 Authorized security testing of Your Project production endpoints.
-Run only when authorised by Patrick or Master agent.
+Run only when authorised by the operator or Master agent.
 
 Tests: SQL injection, XSS, rate limiting, auth bypass, CSRF, path traversal.
 Output: /tmp/chaos_monkey_report.md

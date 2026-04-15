@@ -29,7 +29,7 @@ from typing import Any, Optional
 # ---------------------------------------------------------------------------
 
 BASE_DIR = Path(__file__).resolve().parent          # .orchestra/
-PROJECT_DIR = BASE_DIR.parent                        # ~/indiestack
+PROJECT_DIR = BASE_DIR.parent
 CONFIG_PATH = BASE_DIR / "config.json"
 MASTER_CLAUDE_MD = BASE_DIR / "master" / "CLAUDE.md"
 MEMORY_DIR = BASE_DIR / "memory"

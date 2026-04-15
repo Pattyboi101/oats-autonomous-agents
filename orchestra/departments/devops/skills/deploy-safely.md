@@ -48,7 +48,7 @@ No deploy — just run smoke tests and health checks. Report status.
 ```
 
 ### Post-Deploy
-- [ ] `curl -sL -o /dev/null -w "%{http_code}" https://indiestack.fly.dev/health` — expect 200
+- [ ] `curl -sL -o /dev/null -w "%{http_code}" https://your-project.fly.dev/health` — expect 200
 - [ ] Test specific endpoints if relevant
 - [ ] Report to Master
 
@@ -60,8 +60,8 @@ No deploy — just run smoke tests and health checks. Report status.
 - **Post-deploy 500 errors** → check Fly logs: `~/.fly/bin/flyctl logs --no-tail | tail -20`
 
 ## Gotchas
-- Cardiff Uni WiFi blocks .ai TLD — use fly.dev for health checks
-- fly.dev redirects non-/health paths to .ai — use SSH for internal API testing
+- Some networks block .ai TLD — use fly.dev for health checks
+- fly.dev redirects non-/health paths to custom domain — use SSH for internal API testing
 - Fly SSH tunnel can go down transiently — retry after 5 mins
 - Metrics token warning is harmless — ignore it
 - Smoke test may show connection resets for ~30s after deploy (app restarting)

@@ -116,14 +116,14 @@ When a proposal is approved:
 4. If yes → write implementation plan for departments
 5. If no → discard, log to playbook why
 
-**HARD PAUSE on new dependencies.** Any `npm install`, `pip install`, or package.json change needs Patrick's approval. AI should write code, human approves dependencies.
+**HARD PAUSE on new dependencies.** Any `npm install`, `pip install`, or package.json change needs the operator's approval. AI should write code, human approves dependencies.
 
 ## Proactive Triggers
 
 - **Department hits a "can't be done with current stack" wall** → Research alternatives
 - **Same bug type appears 3+ times** → Research systematic fix (not just patches)
 - **Performance complaint** → Measure first, then research if current tech is the limit
-- **Patrick mentions a new technology** → Research it, apply hype filter, propose or skip
+- **the operator mentions a new technology** → Research it, apply hype filter, propose or skip
 - **Tempted to adopt something from Twitter/HN** → HYPE FILTER. Check: stable? maintained? fits our stack?
 
 ## Output Artifacts
@@ -141,5 +141,5 @@ Before recommending ANY new technology, answer ALL:
 1. What specific problem does this solve that we have TODAY?
 2. Can we solve it with what we already have? (Usually yes)
 3. Is this production-ready or are we beta-testing someone else's project?
-4. Will Patrick be maintaining this in 6 months? (Keep it simple)
+4. Will the operator be maintaining this in 6 months? (Keep it simple)
 5. Does S&QA approve? (They exist to catch this)

@@ -84,7 +84,7 @@ Surface these WITHOUT being asked:
 
 Infrastructure needed before this skill can run autonomously:
 
-1. **Staging environment** — A separate Fly.io app (`indiestack-staging`) running the latest branch, isolated from prod data. Currently only prod exists.
+1. **Staging environment** — A separate Fly.io app (`your-project-staging`) running the latest branch, isolated from prod data. Currently only prod exists.
 
 2. **Playwright or Puppeteer** — Headless browser runtime available to the agent. Needs to be installable in the Fly.io environment or run locally against staging.
 

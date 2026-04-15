@@ -169,7 +169,7 @@ Infrastructure needed before this skill can run autonomously:
 
 3. **Attack payload library** — `.orchestra/departments/devops/payloads/` directory with maintained payload lists for each vector. Avoids hardcoding payloads in this skill.
 
-4. **Legal/ethical scope definition** — Patrick must explicitly document which attack types are in scope. Chaos Monkey should never run without a written scope confirmation.
+4. **Legal/ethical scope definition** — The operator must explicitly document which attack types are in scope. Chaos Monkey should never run without a written scope confirmation.
 
 ## Output Artifacts
 

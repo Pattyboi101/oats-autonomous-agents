@@ -49,7 +49,7 @@ Are identical or near-identical prompts being sent repeatedly?
 Complete cost analysis across all departments with model-task mismatch detection and caching recommendations.
 
 ### Mode: Quick Summary
-Per-department cost summary from the last session. Use when Patrick asks "how much did today cost?"
+Per-department cost summary from the last session. Use when the operator asks "how much did today cost?"
 
 ### Mode: Task Estimate
 Cost estimate for a proposed task based on similar past tasks. Use before dispatching expensive work.
@@ -99,7 +99,7 @@ Surface these WITHOUT being asked:
 - **Total session cost > $5** — Flag before dispatching more tasks. Is the remaining work worth it?
 - **Single task cost > $2** — Investigate what the agent loaded. Was it justified?
 - **Department cost growing session-over-session** — Memory files ballooning? Scope creep?
-- **Before scaling** — If Patrick says "I want to run orchestra daily", run a full audit first. Unoptimised daily runs at current cost could become expensive fast.
+- **Before scaling** — If the operator says "I want to run orchestra daily", run a full audit first. Unoptimised daily runs at current cost could become expensive fast.
 
 ## Concrete Optimisations to Recommend
 

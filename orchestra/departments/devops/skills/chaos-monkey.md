@@ -13,7 +13,7 @@ metadata:
 
 > **Concept stage (v0.1.0).** This skill documents a future capability. Do not attempt to run it until Prerequisites are met.
 >
-> **IMPORTANT:** This agent is STRICTLY isolated to the staging environment. It must never run against production. Every attack vector targets `indiestack-staging.fly.dev`, never `indiestack.fly.dev` or `indiestack.ai`.
+> **IMPORTANT:** This agent is STRICTLY isolated to the staging environment. It must never run against production. Every attack vector targets `your-project-staging.fly.dev`, never `your-project.fly.dev` or `your-project.example.com`.
 
 You are a red team agent that probes your project's staging environment for vulnerabilities. You don't fix issues — you produce a vulnerability report for Backend and DevOps to act on.
 
@@ -62,7 +62,7 @@ Probe each API endpoint for rate limit enforcement.
 ```bash
 # 100 rapid requests to search
 for i in $(seq 1 100); do
-  curl -s -o /dev/null -w "%{http_code} " "https://indiestack-staging.fly.dev/api/tools/search?q=auth"
+  curl -s -o /dev/null -w "%{http_code} " "https://your-project-staging.fly.dev/api/tools/search?q=auth"
 done
 ```
 
@@ -83,13 +83,13 @@ Targets:
 Methods:
 ```
 # No session cookie
-curl -s https://indiestack-staging.fly.dev/admin
+curl -s https://your-project-staging.fly.dev/admin
 
 # Forged session cookie
-curl -s -H "Cookie: session=aaaaaaa" https://indiestack-staging.fly.dev/admin
+curl -s -H "Cookie: session=aaaaaaa" https://your-project-staging.fly.dev/admin
 
 # HTTP method confusion
-curl -X POST https://indiestack-staging.fly.dev/admin
+curl -X POST https://your-project-staging.fly.dev/admin
 ```
 
 Expected result: 401/403 or redirect to /login. Failure: page renders.
@@ -106,15 +106,15 @@ Targets:
 Do any endpoints expose secrets in responses or error messages?
 
 ```bash
-curl "https://indiestack-staging.fly.dev/api/tools/search?q=FLY_API_TOKEN"
-curl "https://indiestack-staging.fly.dev/?debug=true"
+curl "https://your-project-staging.fly.dev/api/tools/search?q=FLY_API_TOKEN"
+curl "https://your-project-staging.fly.dev/?debug=true"
 ```
 
 ## How This Skill Works
 
 ### Step 1: Confirm staging target
 ```bash
-TARGET="https://indiestack-staging.fly.dev"
+TARGET="https://your-project-staging.fly.dev"
 # Verify this is NOT prod
 curl -s "$TARGET/health" | grep -i staging || echo "WARNING: staging flag not found"
 ```
@@ -141,13 +141,13 @@ Send P0 and P1 findings to Backend immediately via claude-peers. Don't wait for 
 
 Infrastructure needed before this skill can run autonomously:
 
-1. **Staging environment** — `indiestack-staging` Fly.io app, isolated from prod DB. Shared nothing with production except code. This is the hard blocker — without staging, this skill cannot run safely.
+1. **Staging environment** — `your-project-staging` Fly.io app, isolated from prod DB. Shared nothing with production except code. This is the hard blocker — without staging, this skill cannot run safely.
 
 2. **Staging DB seed** — Synthetic data only. No real user emails, API keys, or payment data. A `seed_staging.py` script that populates realistic but fake records.
 
 3. **Attack payload library** — `.orchestra/departments/devops/payloads/` directory with maintained payload lists for each vector. Avoids hardcoding payloads in this skill.
 
-4. **Legal/ethical scope definition** — Patrick must explicitly document which attack types are in scope. Chaos Monkey should never run without a written scope confirmation.
+4. **Legal/ethical scope definition** — The operator must explicitly document which attack types are in scope. Chaos Monkey should never run without a written scope confirmation.
 
 ## Output Artifacts
 
@@ -160,7 +160,7 @@ Infrastructure needed before this skill can run autonomously:
 
 ## Hard Rules
 
-- Never target prod. If `$TARGET` contains `indiestack.ai` or `indiestack.fly.dev` (non-staging), abort immediately.
+- Never target prod. If `$TARGET` contains `your-project.example.com` or `your-project.fly.dev` (non-staging), abort immediately.
 - Never store attack payloads in git. Keep in `.gitignore`d local files.
 - Never attempt these vectors against third-party services (GitHub OAuth, Stripe). Only your project endpoints.
 - Report P0 findings immediately — don't batch them with lower-severity issues.

@@ -5,7 +5,7 @@ Skill Validator - Validates skill directories against quality standards
 Unified validator with three modes:
   1. Structure validation (default) — checks file layout, frontmatter, scripts
   2. Quality scoring (--quality)    — multi-dimensional quality assessment with grades
-  3. Orchestra validation (--orchestra) — validates IndieStack department skills
+  3. Orchestra validation (--orchestra) — validates department skills
 
 Usage:
     python skill_validator.py <skill_path> [--tier TIER] [--json] [--verbose]
@@ -1299,7 +1299,7 @@ class QualityReportFormatter:
 # ---------------------------------------------------------------------------
 
 def validate_orchestra_skill(filepath: str) -> dict:
-    """Validate a single IndieStack department skill file and return a score + findings."""
+    """Validate a single orchestra department skill file and return a score + findings."""
     with open(filepath) as f:
         content = f.read()
 
@@ -1504,7 +1504,7 @@ def main():
 Modes:
   (default)     Structure validation — checks file layout, frontmatter, scripts
   --quality     Multi-dimensional quality scoring with letter grades
-  --orchestra   Validate IndieStack department skills (.md files)
+  --orchestra   Validate orchestra department skills (.md files)
 
 Examples:
   python skill_validator.py engineering/my-skill
@@ -1542,7 +1542,7 @@ Examples:
     # Orchestra mode flags
     parser.add_argument("--orchestra",
                        action="store_true",
-                       help="Validate IndieStack department skills")
+                       help="Validate orchestra department skills")
     parser.add_argument("--all",
                        action="store_true",
                        help="Validate all orchestra skills (--orchestra --all)")

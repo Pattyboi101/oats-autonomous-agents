@@ -90,17 +90,17 @@ Work with S&QA to answer:
 - **Department goes silent for 5+ mins** → Check if it's still alive via list_peers
 - **S&QA vetoes** → Log the reason, don't try to work around it
 - **3+ similar tasks dispatched** → S&QA will catch this, but self-check too
-- **All autonomous work done** → Cancel crons, don't churn. Tell Patrick.
-- **Risky change needed** → Text Patrick via telegram, wait for approval
+- **All autonomous work done** → Cancel crons, don't churn. Notify the operator.
+- **Risky change needed** → Notify the operator, wait for approval
 
 ## Output Artifacts
 
 | Situation | Action |
 |-----------|--------|
-| Task completed | Commit, deploy, update playbook, text Patrick if significant |
+| Task completed | Commit, deploy, update playbook, notify the operator if significant |
 | S&QA veto | Log to playbook, find alternative or stop |
 | Department shaped | Commit CLAUDE.md/skill changes |
-| Session complete | Update sprint.md, work_queue.md, text Patrick summary |
+| Session complete | Update sprint.md, work_queue.md, notify the operator summary |
 
 ## Department Strengths (learned 2026-03-30)
 - **Frontend**: Fast HTML/CSS fixes, good UX audits, catches visual issues

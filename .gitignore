@@ -12,3 +12,12 @@ __pycache__/
 .env
 .rag/
 .oats-mcp-config.json
+
+# Runtime data (thoughts, traces, pipeline state)
+.oats/thoughts/
+.oats/traces/
+.oats/pipelines/
+
+# Duplicate .orchestra/ runtime (canonical is orchestra/)
+.orchestra/departments/
+.orchestra/memory/
