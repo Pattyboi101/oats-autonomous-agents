@@ -19,6 +19,22 @@ REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SESSION="orchestra"
 CLAUDE_FLAGS="--dangerously-skip-permissions --dangerously-load-development-channels server:claude-peers"
 
+# Ensure claude-peers broker is running before launching agents
+BROKER_PORT="${CLAUDE_PEERS_PORT:-7899}"
+if ! curl -sf "http://127.0.0.1:${BROKER_PORT}/" >/dev/null 2>&1; then
+  echo "  Starting claude-peers broker..."
+  cd "$HOME/claude-peers-mcp" && bun run broker.ts >> /tmp/claude-peers-broker.log 2>&1 &
+  sleep 2
+  if curl -sf "http://127.0.0.1:${BROKER_PORT}/" >/dev/null 2>&1; then
+    echo "  claude-peers broker started"
+  else
+    echo "  WARNING: claude-peers broker failed to start — peer messaging will not work"
+  fi
+  cd "$REPO_DIR"
+else
+  echo "  claude-peers broker already running"
+fi
+
 # Agent order: CEO first (Opus), then Manager, then departments
 declare -a AGENT_ORDER=(ceo manager frontend backend devops content mcp)
 declare -A MODELS=(
@@ -111,15 +127,28 @@ echo "  Switch:  Ctrl+B then window number"
 echo "  List:    Ctrl+B then W"
 echo "  Detach:  Ctrl+B then D"
 echo ""
-# Wait for agents, confirm dev-channels dialog, then send init prompts
-echo "  Waiting 8 seconds for agents to start..."
-sleep 8
+# Wait for the dev-channels dialog and confirm it — detect rather than guess timing
+confirm_dialog() {
+  local target="$1"
+  local max_wait=30
+  local elapsed=0
+  while [ $elapsed -lt $max_wait ]; do
+    if tmux capture-pane -t "$target" -p 2>/dev/null | grep -q "Enter to confirm"; then
+      tmux send-keys -t "$target" "Enter" 2>/dev/null
+      return 0
+    fi
+    sleep 1
+    elapsed=$((elapsed + 1))
+  done
+  tmux send-keys -t "$target" "Enter" 2>/dev/null
+}
 
-echo "  Confirming dev-channels dialog..."
+echo "  Waiting for dev-channels dialogs..."
 for agent in "${AGENT_ORDER[@]}"; do
-  tmux send-keys -t "$SESSION:$agent" "Enter"
-  sleep 0.5
+  confirm_dialog "$SESSION:$agent" &
 done
+wait
+echo "  All dialogs confirmed."
 
 echo "  Waiting 5 more seconds for agents to load..."
 sleep 5

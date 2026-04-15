@@ -303,7 +303,7 @@ PRs welcome. To add a skill:
 
 [Pattyboi101](https://github.com/Pattyboi101) — with a lot of help from Claude.
 
-Part of the [IndieStack](https://indiestack.ai) ecosystem — the discovery layer between AI coding agents and 8,000+ developer tools.
+Built in production on [IndieStack](https://indiestack.ai) — a dependency guardrail for AI coding agents.
 
 ## License
 
